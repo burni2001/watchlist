@@ -217,6 +217,25 @@
     border: 1px dashed var(--glow-dim); border-radius: 12px;
   }
   .add:hover { background: rgba(92, 242, 196, .06); }
+  .add-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .add-row .add { margin-top: 0; flex: 3 1 auto; width: auto; min-width: 0; }
+  .add-row .add.secondary { flex: 1 1 auto; color: var(--muted); border-color: var(--line); padding: 14px 16px; }
+  .add-row .add.secondary:hover { color: var(--glow); border-color: var(--glow-dim); }
+
+  /* Import */
+  details.import { margin-bottom: 14px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  details.import summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--muted); }
+  details.import[open] summary { margin-bottom: 10px; color: var(--text); }
+  .import-label { display: block; font-size: 14px; font-weight: 600; }
+  .import-label .hint { font-weight: 400; color: var(--muted); }
+  .import-text { display: block; margin-top: 6px; min-height: 140px; }
+  .import-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; font-size: 14px; color: var(--muted); }
+  .import-tools label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  .import-tools input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--glow); }
+  .file-btn { font-size: 14px; padding: 6px 12px; }
+  .import-preview { margin: 10px 0 0; padding: 0; list-style: none; font-size: 14px; color: var(--muted); display: block; }
+  .import-preview li { display: block; padding: 2px 0; background: none; border: 0; border-radius: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .import-preview .count { color: var(--glow); font-weight: 600; }
 
   footer { margin-top: 36px; color: var(--muted); font-size: 13px; text-align: center; }
   .linkish { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 13px; }
@@ -315,7 +334,10 @@
 
     <ol id="items"></ol>
     <p class="empty" id="empty" hidden></p>
-    <button type="button" class="add" id="add-item">+ Eintrag hinzufügen</button>
+    <div class="add-row">
+      <button type="button" class="add" id="add-item">+ Eintrag hinzufügen</button>
+      <button type="button" class="add secondary" id="import-items">Text importieren</button>
+    </div>
   </main>
 
   <footer id="footer" hidden><button type="button" class="linkish" id="logout">Abmelden</button></footer>
@@ -337,6 +359,10 @@
         <input type="text" id="emoji-input" maxlength="16" autocomplete="off" placeholder="oder eigenes Emoji eingeben" aria-label="Eigenes Emoji">
       </div>
     </div>
+    <details class="import" id="list-import">
+      <summary>Einträge aus Text übernehmen (optional)</summary>
+      <div class="import-block"></div>
+    </details>
     <p class="error-text" id="list-error" aria-live="polite"></p>
     <div class="dialog-actions">
       <button type="button" class="btn btn-danger" id="list-delete">Löschen</button>
@@ -346,6 +372,34 @@
     </div>
   </form>
 </dialog>
+
+<!-- Dialog: Text in bestehende Liste importieren -->
+<dialog id="import-dialog" aria-labelledby="import-dialog-title">
+  <form id="import-form" novalidate>
+    <h3 id="import-dialog-title">Text importieren</h3>
+    <div class="import-block"></div>
+    <p class="error-text" id="import-error" aria-live="polite"></p>
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="button" class="btn" data-close>Abbrechen</button>
+      <button type="submit" class="btn-primary">Hinzufügen</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Vorlage für den Import-Bereich (wird in beide Dialoge eingesetzt) -->
+<template id="import-template">
+  <label class="import-label">
+    Eine Zeile pro Eintrag <span class="hint">– z. B. „Alien (1979)“, „1. Zelda“ oder „[x] Dark“ für schon gesehen</span>
+    <textarea class="import-text" spellcheck="false" placeholder="Alien (1979)&#10;Breaking Bad, 2008&#10;[x] Hollow Knight&#10;…"></textarea>
+  </label>
+  <div class="import-tools">
+    <button type="button" class="btn file-btn">Textdatei laden …</button>
+    <input type="file" class="import-file" accept=".txt,.csv,.md,text/plain" hidden>
+    <label><input type="checkbox" class="import-imdb"> Link zur IMDb-Suche anlegen</label>
+  </div>
+  <ul class="import-preview" aria-live="polite"></ul>
+</template>
 
 <!-- Dialog: Eintrag anlegen / bearbeiten -->
 <dialog id="item-dialog" aria-labelledby="item-dialog-title">
@@ -890,6 +944,130 @@ $("emoji-input").addEventListener("input", () => {
   if (g) setEmoji(g);
 });
 
+// ---------- Import aus Text ----------
+const IMPORT_MAX = 500;
+const YEAR = "(1[89]\\d{2}|2[01]\\d{2})";
+const RE_YEAR_PAREN = new RegExp(`^(.+?)\\s*[(\\[]${YEAR}[)\\]]\\s*(?:[–—:|-]\\s*(.+))?$`);
+const RE_YEAR_SEP = new RegExp(`^(.+?)\\s*[,;|–—-]\\s*${YEAR}$`);
+
+// Wandelt eine Textzeile in einen Eintrag um. Erkennt Aufzählungszeichen, Nummern,
+// Häkchen ([x], ✓), Jahr in Klammern oder nach Komma/Strich sowie Links.
+function parseLine(raw) {
+  let s = raw.replace(/\s+/g, " ").trim();
+  if (!s) return null;
+  let seen = false;
+  const mark = /^(?:[-*•·–]\s*)?(?:\d{1,4}[.)]\s*)?(?:\[([ xX✓✔])\]|(☐)|(☑|✅|✓|✔))\s*/;
+  const plain = /^(?:[-*•·–]|\d{1,4}[.)]|#\d{1,4}[.:)]?)\s+/;
+  let m = s.match(mark);
+  if (m) { seen = Boolean((m[1] && m[1] !== " ") || m[3]); s = s.slice(m[0].length); }
+  else if ((m = s.match(plain))) s = s.slice(m[0].length);
+
+  let url = null;
+  const u = s.match(/https?:\/\/\S+/i);
+  if (u) {
+    url = normalizeUrl(u[0]) || null;
+    s = (s.slice(0, u.index) + s.slice(u.index + u[0].length)).replace(/\s+/g, " ").trim().replace(/[\s,;:|–—-]+$/, "");
+  }
+
+  let year = null, note = null, y;
+  if ((y = s.match(RE_YEAR_PAREN))) { s = y[1]; year = +y[2]; note = y[3] || null; }
+  else if ((y = s.match(RE_YEAR_SEP))) { s = y[1]; year = +y[2]; }
+  s = s.trim();
+  if (!s) return null;
+  return { title: s.slice(0, 200), year, note: note ? note.slice(0, 500) : null, url, seen };
+}
+
+function parseText(text, imdb) {
+  const rows = text.split(/\r?\n/).map(parseLine).filter(Boolean).slice(0, IMPORT_MAX);
+  if (imdb) rows.forEach(r => {
+    const search = "https://www.imdb.com/find/?q=" + encodeURIComponent(r.title + (r.year ? " " + r.year : ""));
+    if (!r.url && search.length <= 500) r.url = search;
+  });
+  return rows;
+}
+
+// Setzt den Import-Bereich aus der Vorlage in einen Dialog ein.
+function setupImport(container) {
+  container.append($("import-template").content.cloneNode(true));
+  const ta = container.querySelector(".import-text");
+  const file = container.querySelector(".import-file");
+  const imdb = container.querySelector(".import-imdb");
+  const preview = container.querySelector(".import-preview");
+  const lines = () => ta.value.split(/\r?\n/).filter(l => l.trim()).length;
+
+  function updatePreview() {
+    const rows = parseText(ta.value, false);
+    preview.innerHTML = "";
+    if (!rows.length) return;
+    const head = document.createElement("li");
+    const c = document.createElement("span");
+    c.className = "count";
+    const seen = rows.filter(r => r.seen).length;
+    c.textContent = `${rows.length} ${rows.length === 1 ? "Eintrag" : "Einträge"} erkannt`;
+    head.append(c, seen ? ` – davon ${seen} abgehakt` : "",
+      lines() > IMPORT_MAX ? ` (nur die ersten ${IMPORT_MAX})` : "");
+    preview.append(head);
+    rows.slice(0, 4).forEach(r => {
+      const li = document.createElement("li");
+      li.textContent = `${r.seen ? "✓ " : "· "}${r.title}${r.year ? " (" + r.year + ")" : ""}${r.note ? " – " + r.note : ""}`;
+      preview.append(li);
+    });
+    if (rows.length > 4) {
+      const li = document.createElement("li");
+      li.textContent = "…";
+      preview.append(li);
+    }
+  }
+
+  ta.addEventListener("input", updatePreview);
+  container.querySelector(".file-btn").addEventListener("click", () => file.click());
+  file.addEventListener("change", async () => {
+    const f = file.files[0];
+    if (!f) return;
+    if (f.size > 500000) { alert("Die Datei ist zu groß (höchstens 500 KB)."); file.value = ""; return; }
+    ta.value = await f.text();
+    file.value = "";
+    updatePreview();
+  });
+
+  return {
+    rows: () => parseText(ta.value, imdb.checked),
+    reset() { ta.value = ""; imdb.checked = false; updatePreview(); },
+    focus: () => ta.focus(),
+  };
+}
+
+const listImport = setupImport(document.querySelector("#list-import .import-block"));
+const itemsImport = setupImport(document.querySelector("#import-dialog .import-block"));
+
+// Neue Einträge an eine Liste anhängen (lokal + Datenbank in einem Rutsch)
+function buildRows(listId, parsed) {
+  const its = listItems(listId);
+  let pos = its.length ? its[its.length - 1].position : 0;
+  return parsed.map(r => ({ id: crypto.randomUUID(), list_id: listId, position: ++pos, ...r }));
+}
+
+$("import-items").addEventListener("click", () => {
+  itemsImport.reset();
+  $("import-error").textContent = "";
+  $("import-dialog").showModal();
+  itemsImport.focus();
+});
+
+$("import-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const r = route();
+  if (!findList(r.id)) return;
+  const parsed = itemsImport.rows();
+  if (!parsed.length) { $("import-error").textContent = "Bitte zuerst Text einfügen oder eine Datei laden."; itemsImport.focus(); return; }
+  const rows = buildRows(r.id, parsed);
+  items.push(...rows);
+  filters[r.id] = "all";
+  write(() => db.from("items").insert(rows), "Import fehlgeschlagen – Verbindung prüfen");
+  $("import-dialog").close();
+  render();
+});
+
 function openListDialog(id) {
   editingListId = id;
   const l = id ? findList(id) : null;
@@ -898,6 +1076,9 @@ function openListDialog(id) {
   $("emoji-input").value = l && !EMOJIS.includes(l.emoji) ? l.emoji : "";
   setEmoji(l ? l.emoji : EMOJIS[0]);
   $("list-delete").hidden = !l;
+  $("list-import").hidden = Boolean(l);
+  $("list-import").open = false;
+  listImport.reset();
   $("list-error").textContent = "";
   $("list-dialog").showModal();
   $("list-name-input").focus();
@@ -924,7 +1105,13 @@ $("list-form").addEventListener("submit", e => {
     const position = lists.length ? Math.max(...lists.map(l => l.position)) + 1 : 1;
     const row = { id: crypto.randomUUID(), name, emoji, position };
     lists.push(row);
-    write(() => db.from("lists").insert(row), "Liste konnte nicht angelegt werden – Verbindung prüfen");
+    const rows = buildRows(row.id, listImport.rows());
+    items.push(...rows);
+    write(async () => {
+      const res = await db.from("lists").insert(row);
+      if (res.error || !rows.length) return res;
+      return db.from("items").insert(rows); // erst nach der Liste, wegen der Verknüpfung
+    }, "Liste konnte nicht angelegt werden – Verbindung prüfen");
     $("list-dialog").close();
     openList(row.id);
   }
