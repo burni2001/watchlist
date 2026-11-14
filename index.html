@@ -201,13 +201,14 @@
   .year { color: var(--muted); font-weight: 400; margin-left: 6px; font-variant-numeric: tabular-nums; }
   .desc { color: var(--muted); font-size: 14px; margin-top: 2px; }
 
-  .row-actions { display: none; gap: 6px; align-items: center; margin: -6px -6px -6px 0; }
-  ol.editing .row-actions { display: flex; }
-  .handle {
-    background: none; border: 0; color: var(--muted); cursor: grab; touch-action: none;
-    width: 40px; height: 40px; font-size: 20px; line-height: 1; border-radius: 10px;
+  .row-actions { display: flex; gap: 2px; align-items: center; margin: -8px -10px -8px 0; }
+  .row-btn {
+    background: none; border: 0; color: var(--muted); cursor: pointer;
+    width: 40px; height: 40px; font-size: 17px; line-height: 1; border-radius: 10px;
+    display: grid; place-items: center; padding: 0;
   }
-  .handle:hover, .handle:focus-visible { color: var(--glow); }
+  .row-btn:hover, .row-btn:focus-visible { color: var(--glow); background: var(--panel-2); }
+  .handle { cursor: grab; touch-action: none; font-size: 20px; }
   .handle:active { cursor: grabbing; }
 
   .empty { color: var(--muted); text-align: center; padding: 24px; }
@@ -264,8 +265,12 @@
     font-size: 30px; width: 52px; height: 52px; display: grid; place-items: center; flex: none;
     background: var(--panel-2); border: 1px solid var(--glow-dim); border-radius: 12px;
   }
-  .dialog-actions { display: flex; gap: 8px; margin-top: 18px; align-items: center; }
+  .dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; align-items: center; }
   .dialog-actions .spacer { flex: 1; }
+  dialog form > * { min-width: 0; }
+  .link-row { display: flex; gap: 8px; }
+  .link-row input { flex: 1; min-width: 0; }
+  .link-row .btn { flex: none; padding: 9px 12px; white-space: nowrap; }
 
   @media (max-width: 480px) {
     li { grid-template-columns: auto 1.6em 1fr auto; gap: 10px; padding: 12px; }
@@ -273,6 +278,12 @@
     .tile { min-height: 136px; padding: 14px; }
     .tools { margin-left: 0; }
     .brand img { width: 44px; height: 44px; border-radius: 11px; }
+    li { gap: 8px; padding: 12px 12px 12px 12px; }
+    .row-btn { width: 36px; height: 36px; }
+    dialog { padding: 18px 16px; }
+    .dialog-actions .spacer { display: none; }
+    .dialog-actions .btn, .dialog-actions .btn-primary { flex: 1 1 0; padding-left: 8px; padding-right: 8px; }
+    .dialog-actions .btn-danger { order: 3; flex-basis: 100%; }
   }
 </style>
 </head>
@@ -327,7 +338,6 @@
         <button type="button" data-filter="seen" aria-pressed="false">Gesehen</button>
       </div>
       <div class="tools">
-        <button type="button" class="tool" id="edit-toggle" aria-pressed="false">Bearbeiten</button>
         <button type="button" class="tool reset" id="reset">Zurücksetzen</button>
       </div>
     </div>
@@ -419,7 +429,10 @@
     </div>
     <div class="field">
       <label for="item-url">Link <span class="hint">(optional, z. B. IMDb oder Steam)</span></label>
-      <input type="text" id="item-url" inputmode="url" maxlength="500" autocomplete="off" placeholder="https://…">
+      <div class="link-row">
+        <input type="text" id="item-url" inputmode="url" maxlength="500" autocomplete="off" placeholder="https://…">
+        <button type="button" class="btn" id="item-imdb" title="Link zur IMDb-Suche nach Titel und Jahr eintragen">IMDb-Suche</button>
+      </div>
     </div>
     <p class="error-text" id="item-error" aria-live="polite"></p>
     <div class="dialog-actions">
@@ -460,7 +473,6 @@ let inflight = 0;
 let refetchLater = false;
 let refetchTimer = null;
 let dragging = false;
-let editing = false;
 const filters = {};      // Filter je Liste
 let cameFromHome = false;
 let subscribed = false;   // Live-Kanal verbunden
@@ -492,7 +504,6 @@ function openList(id) {
 }
 window.addEventListener("hashchange", () => {
   if (route().view === "home") cameFromHome = false;
-  editing = false;
   render();
   window.scrollTo(0, 0);
 });
@@ -679,11 +690,8 @@ function renderList(id) {
   const filter = filters[id] || "all";
   document.querySelectorAll(".filter button").forEach(b =>
     b.setAttribute("aria-pressed", String(b.dataset.filter === filter)));
-  $("edit-toggle").setAttribute("aria-pressed", String(editing));
-  $("edit-toggle").textContent = editing ? "Fertig" : "Bearbeiten";
 
   const ol = $("items");
-  ol.classList.toggle("editing", editing);
   ol.innerHTML = "";
   let visible = 0;
   its.forEach((it, idx) => {
@@ -735,14 +743,14 @@ function renderList(id) {
     actions.className = "row-actions";
     const ed = document.createElement("button");
     ed.type = "button";
-    ed.className = "icon-btn";
+    ed.className = "row-btn";
     ed.textContent = "✎";
     ed.dataset.focus = "ed-" + it.id;
     ed.setAttribute("aria-label", `„${it.title}“ bearbeiten`);
     ed.addEventListener("click", () => openItemDialog(it.id));
     const h = document.createElement("button");
     h.type = "button";
-    h.className = "handle";
+    h.className = "row-btn handle";
     h.textContent = "⠿";
     h.dataset.focus = "h-" + it.id;
     h.setAttribute("aria-label", `„${it.title}“ verschieben: ziehen oder Pfeiltasten`);
@@ -814,7 +822,6 @@ if (window.Sortable) Sortable.create($("items"), {
   },
 });
 
-$("edit-toggle").addEventListener("click", () => { editing = !editing; render(); });
 
 document.querySelectorAll(".filter button").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -866,6 +873,19 @@ function normalizeUrl(raw) {
 }
 
 $("add-item").addEventListener("click", () => openItemDialog(null));
+
+function imdbSearchUrl(title, year) {
+  return "https://www.imdb.com/find/?q=" + encodeURIComponent(title + (year ? " " + year : ""));
+}
+
+// Trägt einen Link zur IMDb-Suche nach Titel (und Jahr) ins Link-Feld ein.
+$("item-imdb").addEventListener("click", () => {
+  const title = $("item-title").value.trim();
+  if (!title) { $("item-error").textContent = "Bitte zuerst einen Titel eingeben."; $("item-title").focus(); return; }
+  const year = $("item-year").value.trim();
+  $("item-url").value = imdbSearchUrl(title, /^\d{4}$/.test(year) ? year : "");
+  $("item-error").textContent = "";
+});
 
 $("item-form").addEventListener("submit", e => {
   e.preventDefault();
@@ -980,7 +1000,7 @@ function parseLine(raw) {
 function parseText(text, imdb) {
   const rows = text.split(/\r?\n/).map(parseLine).filter(Boolean).slice(0, IMPORT_MAX);
   if (imdb) rows.forEach(r => {
-    const search = "https://www.imdb.com/find/?q=" + encodeURIComponent(r.title + (r.year ? " " + r.year : ""));
+    const search = imdbSearchUrl(r.title, r.year);
     if (!r.url && search.length <= 500) r.url = search;
   });
   return rows;
