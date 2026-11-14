@@ -2,9 +2,17 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Godzilla – Die 20 besten Filme zum Abhaken</title>
-<meta name="description" content="Die 20 besten Godzilla-Filme aller Zeiten – zum Abhaken, mit IMDb-Links.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Watchlist</title>
+<meta name="description" content="Geteilte Listen für Filme, Serien und Spiele – zum gemeinsamen Abhaken.">
+<meta name="theme-color" content="#0d1110">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Watchlist">
 <style>
   :root {
     --bg: #0d1110;
@@ -26,47 +34,99 @@
     color: var(--text);
     font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     min-height: 100vh;
+    -webkit-tap-highlight-color: transparent;
   }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 64px; }
-
-  header h1 {
-    margin: 0 0 4px;
-    font-size: clamp(28px, 6vw, 44px);
-    letter-spacing: -0.02em;
-    line-height: 1.1;
+  [hidden] { display: none !important; }
+  button { font: inherit; color: inherit; }
+  .wrap {
+    max-width: 760px; margin: 0 auto;
+    padding: max(28px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 64px max(20px, env(safe-area-inset-left));
   }
-  header h1 span { color: var(--glow); text-shadow: 0 0 24px rgba(92, 242, 196, 0.45); }
-  header p { margin: 0; color: var(--muted); }
 
-  .status { display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  /* Kopf */
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand img { width: 52px; height: 52px; border-radius: 13px; flex: none; }
+  .brand h1 { margin: 0; font-size: clamp(26px, 6vw, 36px); letter-spacing: -0.02em; line-height: 1.1; }
+  .brand p { margin: 2px 0 0; color: var(--muted); }
+
+  .status { display: inline-flex; align-items: center; gap: 7px; margin-top: 12px; font-size: 13px; color: var(--muted); }
   .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
   .status.live .dot { background: var(--glow); box-shadow: 0 0 8px rgba(92, 242, 196, 0.8); }
   .status.error .dot { background: var(--danger); }
   .status.error { color: var(--danger); }
-  li.locked .check input { cursor: not-allowed; }
 
+  /* Anmeldung */
   .login {
     margin: 28px 0 0; background: var(--panel); border: 1px solid var(--line);
     border-radius: 14px; padding: 20px 18px;
   }
   .login label { display: block; font-weight: 600; margin-bottom: 8px; }
-  .login-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .login input {
-    flex: 1 1 200px; min-width: 0; font: inherit; color: var(--text);
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  input[type=text], input[type=password], input[type=number], textarea {
+    width: 100%; font: inherit; font-size: 16px; color: var(--text);
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px;
   }
-  .login input:focus { outline: 2px solid var(--glow-dim); outline-offset: 1px; border-color: var(--glow-dim); }
-  .login button {
-    font: inherit; font-weight: 600; color: #0d1110; background: var(--glow);
+  textarea { resize: vertical; min-height: 64px; }
+  .login input { flex: 1 1 200px; width: auto; min-width: 0; }
+  input:focus, textarea:focus { outline: 2px solid var(--glow-dim); outline-offset: 1px; border-color: var(--glow-dim); }
+  .btn-primary {
+    font-weight: 600; color: #0d1110; background: var(--glow);
     border: 0; border-radius: 10px; padding: 9px 18px; cursor: pointer;
   }
-  .login button:disabled { opacity: .6; cursor: wait; }
-  .login-error { color: var(--danger); font-size: 14px; margin: 10px 0 0; min-height: 1.5em; }
-  .logout { background: none; border: 0; padding: 0; font: inherit; color: var(--muted); text-decoration: underline; cursor: pointer; }
-  [hidden] { display: none !important; }
+  .btn-primary:disabled { opacity: .6; cursor: wait; }
+  .btn {
+    background: none; border: 1px solid var(--line); border-radius: 10px;
+    padding: 9px 16px; cursor: pointer; color: var(--muted);
+  }
+  .btn:hover { color: var(--text); border-color: var(--muted); }
+  .btn-danger { color: var(--danger); border-color: rgba(255, 107, 90, .4); }
+  .btn-danger:hover { color: var(--danger); border-color: var(--danger); }
+  .error-text { color: var(--danger); font-size: 14px; margin: 10px 0 0; min-height: 1.5em; }
+
+  /* Startseite */
+  .section-title { margin: 32px 0 12px; font-size: 14px; font-weight: 600; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .tile {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    padding: 16px; cursor: pointer; min-height: 150px;
+    transition: border-color .2s, transform .15s, background .2s;
+  }
+  .tile:hover { border-color: var(--glow-dim); background: var(--panel-2); }
+  .tile:active { transform: scale(.98); }
+  .tile:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
+  .tile .emoji { font-size: 44px; line-height: 1.1; }
+  .tile .name {
+    font-weight: 600; line-height: 1.3; flex: 1;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .tile .meta { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tile .mini { width: 100%; height: 4px; background: var(--panel-2); border-radius: 99px; overflow: hidden; }
+  .tile .mini > span { display: block; height: 100%; background: var(--glow); box-shadow: 0 0 8px rgba(92, 242, 196, .6); border-radius: 99px; }
+  .tile.new { border-style: dashed; justify-content: center; align-items: center; text-align: center; color: var(--muted); }
+  .tile.new .emoji { font-size: 34px; color: var(--glow); }
+
+  /* Listenansicht */
+  .back {
+    margin-top: 24px; background: none; border: 0; padding: 6px 0; cursor: pointer;
+    color: var(--muted); font-size: 15px;
+  }
+  .back:hover { color: var(--glow); }
+  .list-title { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+  .list-title .emoji-btn {
+    font-size: 40px; line-height: 1; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 14px; width: 64px; height: 64px; flex: none; cursor: pointer;
+  }
+  .list-title .emoji-btn:hover { border-color: var(--glow-dim); }
+  .list-title h2 { margin: 0; font-size: clamp(22px, 5vw, 30px); line-height: 1.2; letter-spacing: -0.01em; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .icon-btn {
+    background: none; border: 1px solid var(--line); border-radius: 10px; cursor: pointer;
+    color: var(--muted); width: 40px; height: 40px; flex: none; font-size: 17px; line-height: 1;
+  }
+  .icon-btn:hover { color: var(--glow); border-color: var(--glow-dim); }
 
   .progress {
-    margin: 28px 0 20px;
+    margin: 20px 0 16px;
     background: var(--panel);
     border: 1px solid var(--line);
     border-radius: 14px;
@@ -74,7 +134,7 @@
   }
   .progress-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
   .progress-count { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .progress-label { color: var(--muted); font-size: 14px; }
+  .progress-label { color: var(--muted); font-size: 14px; text-align: right; }
   .bar { height: 8px; background: var(--panel-2); border-radius: 99px; margin-top: 10px; overflow: hidden; }
   .bar > div {
     height: 100%; width: 0;
@@ -86,19 +146,21 @@
 
   .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
   .filter { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
-  .filter button, .reset {
-    font: inherit; font-size: 14px; color: var(--muted);
+  .filter button, .tool {
+    font-size: 14px; color: var(--muted);
     background: none; border: 0; border-radius: 7px;
     padding: 6px 12px; cursor: pointer;
   }
   .filter button[aria-pressed="true"] { background: var(--panel-2); color: var(--text); }
-  .reset { margin-left: auto; border: 1px solid var(--line); }
+  .tool { border: 1px solid var(--line); }
+  .tool[aria-pressed="true"] { color: #0d1110; background: var(--glow); border-color: var(--glow); }
+  .tools { margin-left: auto; display: flex; gap: 8px; }
   .reset:hover { color: var(--danger); border-color: var(--danger); }
 
   ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
   li {
     display: grid;
-    grid-template-columns: auto 2.2em 1fr;
+    grid-template-columns: auto 2.2em 1fr auto;
     gap: 12px;
     align-items: start;
     background: var(--panel);
@@ -108,11 +170,12 @@
     transition: border-color .2s, background .2s, opacity .2s;
   }
   li.seen { border-color: rgba(92, 242, 196, 0.35); background: #142019; }
-  li.seen .title a { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(92,242,196,.6); }
-  li[hidden] { display: none; }
+  li.seen .title .t { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(92,242,196,.6); }
+  li.ghost { opacity: .35; }
+  li.chosen { border-color: var(--glow); box-shadow: 0 8px 24px rgba(0,0,0,.4); }
 
   .check { position: relative; width: 26px; height: 26px; margin-top: 1px; }
-  .check input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .check input { position: absolute; inset: -8px; width: 42px; height: 42px; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
   .check span {
     display: block; width: 26px; height: 26px;
     border: 2px solid var(--glow-dim); border-radius: 7px;
@@ -127,245 +190,314 @@
     border: solid #0d1110; border-width: 0 3px 3px 0; transform: rotate(45deg);
   }
   .check input:focus-visible + span { outline: 2px solid var(--glow); outline-offset: 3px; }
+  .check input:disabled { cursor: not-allowed; }
 
   .rank { font-weight: 700; color: var(--glow-dim); font-variant-numeric: tabular-nums; padding-top: 1px; }
+  .item-body { min-width: 0; overflow-wrap: anywhere; }
   .title { font-weight: 600; }
   .title a { color: var(--text); text-decoration: none; }
   .title a:hover { color: var(--glow); }
   .title a::after { content: " ↗"; font-size: 12px; color: var(--muted); }
   .year { color: var(--muted); font-weight: 400; margin-left: 6px; font-variant-numeric: tabular-nums; }
   .desc { color: var(--muted); font-size: 14px; margin-top: 2px; }
-  .badge {
-    display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .03em;
-    color: var(--glow); border: 1px solid var(--glow-dim); border-radius: 99px;
-    padding: 0 7px; margin-left: 6px; vertical-align: 2px;
-  }
 
-  .empty { color: var(--muted); text-align: center; padding: 24px; display: none; }
-  footer { margin-top: 32px; color: var(--muted); font-size: 13px; text-align: center; }
-  footer a { color: var(--muted); }
+  .row-actions { display: none; gap: 6px; align-items: center; margin: -6px -6px -6px 0; }
+  ol.editing .row-actions { display: flex; }
+  .handle {
+    background: none; border: 0; color: var(--muted); cursor: grab; touch-action: none;
+    width: 40px; height: 40px; font-size: 20px; line-height: 1; border-radius: 10px;
+  }
+  .handle:hover, .handle:focus-visible { color: var(--glow); }
+  .handle:active { cursor: grabbing; }
+
+  .empty { color: var(--muted); text-align: center; padding: 24px; }
+  .add {
+    width: 100%; margin-top: 12px; padding: 14px; cursor: pointer;
+    background: none; color: var(--glow); font-weight: 600;
+    border: 1px dashed var(--glow-dim); border-radius: 12px;
+  }
+  .add:hover { background: rgba(92, 242, 196, .06); }
+
+  footer { margin-top: 36px; color: var(--muted); font-size: 13px; text-align: center; }
+  .linkish { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 13px; }
+
+  /* Dialoge */
+  dialog {
+    width: min(480px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto;
+    margin: max(6vh, env(safe-area-inset-top)) auto auto;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--line); border-radius: 16px; padding: 20px;
+  }
+  dialog::backdrop { background: rgba(5, 8, 7, .72); }
+  dialog h3 { margin: 0 0 16px; font-size: 20px; }
+  .field { margin-bottom: 14px; }
+  .field > label, .field > .label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .field .hint { font-weight: 400; color: var(--muted); }
+  .emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+  .emoji-grid button {
+    font-size: 22px; line-height: 1; aspect-ratio: 1; min-width: 0; padding: 0;
+    background: var(--panel-2); border: 1px solid transparent; border-radius: 9px; cursor: pointer;
+  }
+  .emoji-grid button[aria-pressed="true"] { border-color: var(--glow); box-shadow: 0 0 10px rgba(92, 242, 196, .35); }
+  .emoji-custom { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .emoji-custom input { flex: 1; }
+  .emoji-preview {
+    font-size: 30px; width: 52px; height: 52px; display: grid; place-items: center; flex: none;
+    background: var(--panel-2); border: 1px solid var(--glow-dim); border-radius: 12px;
+  }
+  .dialog-actions { display: flex; gap: 8px; margin-top: 18px; align-items: center; }
+  .dialog-actions .spacer { flex: 1; }
 
   @media (max-width: 480px) {
-    li { grid-template-columns: auto 1.8em 1fr; gap: 10px; padding: 12px; }
-    .reset { margin-left: 0; }
+    li { grid-template-columns: auto 1.6em 1fr auto; gap: 10px; padding: 12px; }
+    .tiles { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .tile { min-height: 136px; padding: 14px; }
+    .tools { margin-left: 0; }
+    .brand img { width: 44px; height: 44px; border-radius: 11px; }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>Die 20 besten <span>Godzilla</span>-Filme</h1>
-    <p>Geteilte Liste für die Bärenbande</p>
-    <div class="status" id="status" role="status"><span class="dot"></span><span id="status-text">Verbinde …</span></div>
+  <header class="brand">
+    <img src="icon.svg" alt="">
+    <div>
+      <h1>Watchlist</h1>
+      <p>Geteilte Liste für die Bärenbande</p>
+    </div>
   </header>
+  <div class="status" id="status" role="status"><span class="dot"></span><span id="status-text">Lade …</span></div>
 
+  <!-- Anmeldung -->
   <form class="login" id="login" hidden>
     <label for="password">Passwort</label>
-    <div class="login-row">
+    <div class="row">
       <input type="password" id="password" autocomplete="current-password" required>
-      <button type="submit" id="login-btn">Öffnen</button>
+      <button type="submit" class="btn-primary" id="login-btn">Öffnen</button>
     </div>
-    <p class="login-error" id="login-error" aria-live="polite"></p>
+    <p class="error-text" id="login-error" aria-live="polite"></p>
   </form>
 
-  <main id="app" hidden>
-  <section class="progress" aria-live="polite">
-    <div class="progress-top">
-      <div class="progress-count" id="count">0 / 20</div>
-      <div class="progress-label" id="label">Noch keinen gesehen</div>
-    </div>
-    <div class="bar"><div id="bar"></div></div>
-  </section>
-
-  <div class="toolbar">
-    <div class="filter" role="group" aria-label="Filter">
-      <button type="button" data-filter="all" aria-pressed="true">Alle</button>
-      <button type="button" data-filter="open" aria-pressed="false">Offen</button>
-      <button type="button" data-filter="seen" aria-pressed="false">Gesehen</button>
-    </div>
-    <button type="button" class="reset" id="reset">Zurücksetzen</button>
-  </div>
-
-  <ol id="list"></ol>
-  <p class="empty" id="empty"></p>
-
-  <footer>Titel verlinken auf die jeweiligen <a href="https://www.imdb.com/" target="_blank" rel="noopener">IMDb</a>-Einträge. · <button type="button" class="logout" id="logout">Abmelden</button></footer>
+  <!-- Startseite -->
+  <main id="home" hidden>
+    <h2 class="section-title">Eure Listen</h2>
+    <div class="tiles" id="tiles"></div>
   </main>
+
+  <!-- Eine Liste -->
+  <main id="listview" hidden>
+    <button type="button" class="back" id="back">← Alle Listen</button>
+    <div class="list-title">
+      <button type="button" class="emoji-btn" id="list-emoji" aria-label="Liste bearbeiten"></button>
+      <h2 id="list-name"></h2>
+      <button type="button" class="icon-btn" id="list-edit" aria-label="Liste umbenennen oder Emoji ändern" title="Liste bearbeiten">✎</button>
+    </div>
+
+    <section class="progress" aria-live="polite">
+      <div class="progress-top">
+        <div class="progress-count" id="count">0 / 0</div>
+        <div class="progress-label" id="label"></div>
+      </div>
+      <div class="bar"><div id="bar"></div></div>
+    </section>
+
+    <div class="toolbar">
+      <div class="filter" role="group" aria-label="Filter">
+        <button type="button" data-filter="all" aria-pressed="true">Alle</button>
+        <button type="button" data-filter="open" aria-pressed="false">Offen</button>
+        <button type="button" data-filter="seen" aria-pressed="false">Gesehen</button>
+      </div>
+      <div class="tools">
+        <button type="button" class="tool" id="edit-toggle" aria-pressed="false">Bearbeiten</button>
+        <button type="button" class="tool reset" id="reset">Zurücksetzen</button>
+      </div>
+    </div>
+
+    <ol id="items"></ol>
+    <p class="empty" id="empty" hidden></p>
+    <button type="button" class="add" id="add-item">+ Eintrag hinzufügen</button>
+  </main>
+
+  <footer id="footer" hidden><button type="button" class="linkish" id="logout">Abmelden</button></footer>
 </div>
+
+<!-- Dialog: Liste anlegen / bearbeiten -->
+<dialog id="list-dialog" aria-labelledby="list-dialog-title">
+  <form id="list-form" novalidate>
+    <h3 id="list-dialog-title">Neue Liste</h3>
+    <div class="field">
+      <label for="list-name-input">Name</label>
+      <input type="text" id="list-name-input" maxlength="80" autocomplete="off" required>
+    </div>
+    <div class="field">
+      <span class="label" id="emoji-label">Emoji</span>
+      <div class="emoji-grid" id="emoji-grid" role="group" aria-labelledby="emoji-label"></div>
+      <div class="emoji-custom">
+        <div class="emoji-preview" id="emoji-preview" aria-hidden="true"></div>
+        <input type="text" id="emoji-input" maxlength="16" autocomplete="off" placeholder="oder eigenes Emoji eingeben" aria-label="Eigenes Emoji">
+      </div>
+    </div>
+    <p class="error-text" id="list-error" aria-live="polite"></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-danger" id="list-delete">Löschen</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" data-close>Abbrechen</button>
+      <button type="submit" class="btn-primary">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Dialog: Eintrag anlegen / bearbeiten -->
+<dialog id="item-dialog" aria-labelledby="item-dialog-title">
+  <form id="item-form" novalidate>
+    <h3 id="item-dialog-title">Neuer Eintrag</h3>
+    <div class="field">
+      <label for="item-title">Titel</label>
+      <input type="text" id="item-title" maxlength="200" autocomplete="off" required>
+    </div>
+    <div class="field">
+      <label for="item-year">Jahr <span class="hint">(optional)</span></label>
+      <input type="number" id="item-year" inputmode="numeric" min="1800" max="2200" step="1">
+    </div>
+    <div class="field">
+      <label for="item-note">Beschreibung <span class="hint">(optional)</span></label>
+      <textarea id="item-note" maxlength="500" rows="2"></textarea>
+    </div>
+    <div class="field">
+      <label for="item-url">Link <span class="hint">(optional, z. B. IMDb oder Steam)</span></label>
+      <input type="text" id="item-url" inputmode="url" maxlength="500" autocomplete="off" placeholder="https://…">
+    </div>
+    <p class="error-text" id="item-error" aria-live="polite"></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-danger" id="item-delete">Löschen</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" data-close>Abbrechen</button>
+      <button type="submit" class="btn-primary">Speichern</button>
+    </div>
+  </form>
+</dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"
         integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK"
         crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.7/Sortable.min.js"
+        integrity="sha384-DgmC6Xe2bSN2WjTDXzWYbUbxyhNP+NNkGDR/g78pCXV7E7rcVTGxVg0uIVCUUcBc"
+        crossorigin="anonymous"></script>
 <script>
-// Supabase-Projekt: Project Settings → API (bzw. „Connect“).
-// Der öffentliche Schlüssel (publishable / anon) darf hier stehen; die Rechte regeln die Datenbank-Regeln.
+// Supabase-Projekt. Der öffentliche Schlüssel darf hier stehen; die Rechte regeln die Datenbank-Regeln.
 const SUPABASE_URL = "https://cjwxztggnsvwnxcqulur.supabase.co";
 const SUPABASE_KEY = "sb_publishable_p7i_LcPHvG-wd0Jh_zeQ-A_Hd4R1YBj";
-const TABLE = "seen_films";
-// Gemeinsamer Benutzer für alle Freunde; nur das Passwort wird abgefragt.
+// Gemeinsamer Benutzer für alle; nur das Passwort wird abgefragt.
 const LOGIN_EMAIL = "watchlist@example.com";
 
-const FILMS = [
-  { id: "tt0047034",  title: "Godzilla", year: 1954, desc: "Das düstere Original über die Atombombe" },
-  { id: "tt23289160", title: "Godzilla Minus One", year: 2023, desc: "Nachkriegsdrama, Oscar für die visuellen Effekte" },
-  { id: "tt4262980",  title: "Shin Godzilla", year: 2016, desc: "Satire auf die japanischen Behörden" },
-  { id: "tt0113187",  title: "Godzilla gegen Destoroyah", year: 1995, desc: "Godzillas Kernschmelze" },
-  { id: "tt0279112",  title: "GMK – Giant Monsters All-Out Attack", year: 2001, desc: "Godzilla als Rachegeist der Kriegstoten" },
-  { id: "tt0058379",  title: "Godzilla und die Urweltraupen", year: 1964, desc: "Godzilla gegen Mothra" },
-  { id: "tt0097444",  title: "Godzilla vs. Biollante", year: 1989, desc: "Gentechnik und ein Pflanzenmonster" },
-  { id: "tt0058544",  title: "Frankensteins Monster im Kampf gegen Ghidorah", year: 1964, desc: "King Ghidorahs erster Auftritt" },
-  { id: "tt0067148",  title: "Frankensteins Kampf gegen die Teufelsmonster", year: 1971, desc: "Godzilla gegen das Smog-Monster Hedorah" },
-  { id: "tt0831387",  title: "Godzilla", year: 2014, desc: "Gareth Edwards' Version, das Monster ist lange kaum zu sehen" },
-  { id: "tt0071565",  title: "Godzilla gegen Mechagodzilla", year: 1974, desc: "Godzilla gegen seinen Roboter-Doppelgänger" },
-  { id: "tt0063172",  title: "Frankenstein und die Monster aus dem All", year: 1968, desc: "Fast alle Toho-Monster gegen Außerirdische" },
-  { id: "tt3741700",  title: "Godzilla II: King of the Monsters", year: 2019, desc: "Godzilla gegen Ghidorah in Hollywood-Größe" },
-  { id: "tt34384661", title: "Godzilla Minus Zero", year: 2026, desc: "Fortsetzung von Minus One, gerade im Kino", badge: "Neu" },
-  { id: "tt9015178",  title: "The Return of Godzilla", year: 1984, desc: "Neustart vor dem Hintergrund des Kalten Kriegs" },
-  { id: "tt0101962",  title: "Godzilla – Duell der Megasaurier", year: 1991, desc: "Zeitreisen und Godzillas Herkunft" },
-  { id: "tt5034838",  title: "Godzilla vs. Kong", year: 2021, desc: "Popcorn-Kino mit Nachtkampf in Hongkong" },
-  { id: "tt0399102",  title: "Godzilla: Final Wars", year: 2004, desc: "Überdrehte Jubiläumsparty mit fast allen Monstern" },
-  { id: "tt13364334", title: "Die Rückkehr des King Kong", year: 1962, desc: "Das erste Duell zwischen Godzilla und Kong" },
-  { id: "tt0188640",  title: "Godzilla 2000 Millennium", year: 1999, desc: "Japans Antwort auf den US-Godzilla von 1998" },
-];
+const EMOJIS = ["🎬","🍿","📺","🎮","🕹️","👾","🎲","🦖","🐻","🧸","🚀","🌌","🤖","👻","🧟","🦸",
+                "🐉","🧙","🕵️","🏴‍☠️","🦈","🐼","🎄","🎃","❤️","⭐","🔥","🏆","📚","🎵","🌊","🍕"];
 
-const FILM_IDS = new Set(FILMS.map(f => f.id));
-let seen = new Set();
-let filter = "all";
+const $ = id => document.getElementById(id);
+
+// ---------- Zustand ----------
 let db = null;
-let ready = false;      // erste Daten vom Server geladen
-let inflight = 0;       // laufende Schreibvorgänge
-let refetchLater = false;
-
-const list = document.getElementById("list");
-
-function setStatus(state, text) {
-  const el = document.getElementById("status");
-  el.classList.toggle("live", state === "live");
-  el.classList.toggle("error", state === "error");
-  document.getElementById("status-text").textContent = text;
-}
-
-// Holt den kompletten Stand vom Server (20 Zeilen, also billig).
-async function fetchAll() {
-  if (!db || !channel) return;
-  if (inflight > 0) { refetchLater = true; return; }
-  const { data, error } = await db.from(TABLE).select("film_id");
-  if (error) { setStatus("error", "Laden fehlgeschlagen – bitte Seite neu laden"); return; }
-  if (inflight > 0) { refetchLater = true; return; }
-  if (!channel) return; // inzwischen abgemeldet
-  seen = new Set(data.map(r => r.film_id).filter(id => FILM_IDS.has(id)));
-  ready = true;
-  update();
-}
-
-async function write(op) {
-  inflight++;
-  try {
-    const { error } = await op();
-    return !error;
-  } catch (e) {
-    return false;
-  } finally {
-    inflight--;
-    if (inflight === 0 && refetchLater) { refetchLater = false; fetchAll(); }
-  }
-}
-
-async function toggle(id, checked) {
-  // sofort anzeigen, dann speichern; bei Fehler zurückdrehen
-  checked ? seen.add(id) : seen.delete(id);
-  update();
-  const ok = await write(() => checked
-    ? db.from(TABLE).upsert({ film_id: id }, { onConflict: "film_id", ignoreDuplicates: true })
-    : db.from(TABLE).delete().eq("film_id", id));
-  if (!ok) {
-    setStatus("error", "Speichern fehlgeschlagen – Verbindung prüfen");
-    fetchAll();
-  }
-}
-
-function connect() {
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    setStatus("error", "Noch nicht mit der Datenbank verbunden (Zugangsdaten fehlen)");
-    return;
-  }
-  if (!window.supabase) {
-    setStatus("error", "Supabase-Bibliothek konnte nicht geladen werden");
-    return;
-  }
-  // Die Anmeldung bleibt im Browser gespeichert und wird automatisch verlängert.
-  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, storageKey: "watchlist-auth" },
-  });
-
-  db.auth.onAuthStateChange((event, session) => {
-    // Der Callback darf selbst keine Supabase-Aufrufe abwarten, daher setTimeout.
-    setTimeout(() => session ? startSync() : stopSync(), 0);
-  });
-}
-
-const loginForm = document.getElementById("login");
-const loginError = document.getElementById("login-error");
-const loginBtn = document.getElementById("login-btn");
-const pwInput = document.getElementById("password");
-
-function showLogin(message) {
-  document.getElementById("app").hidden = true;
-  loginForm.hidden = false;
-  loginError.textContent = message || "";
-  setStatus("", "Bitte Passwort eingeben");
-  pwInput.focus();
-}
-
-loginForm.addEventListener("submit", async e => {
-  e.preventDefault();
-  if (!db) return;
-  loginBtn.disabled = true;
-  loginError.textContent = "";
-  const { error } = await db.auth.signInWithPassword({ email: LOGIN_EMAIL, password: pwInput.value });
-  loginBtn.disabled = false;
-  if (error) {
-    loginError.textContent = /invalid/i.test(error.message)
-      ? "Falsches Passwort."
-      : "Anmeldung fehlgeschlagen – bitte später noch einmal versuchen.";
-    pwInput.select();
-  } else {
-    pwInput.value = "";
-  }
-});
-
-document.getElementById("logout").addEventListener("click", () => { if (db) db.auth.signOut(); });
-
+let lists = [];          // {id, name, emoji, position}
+let items = [];          // {id, list_id, title, year, note, url, position, seen}
+let loaded = false;
 let channel = null;
 let poller = null;
+let inflight = 0;
+let refetchLater = false;
+let refetchTimer = null;
+let dragging = false;
+let editing = false;
+const filters = {};      // Filter je Liste
+let cameFromHome = false;
+let subscribed = false;   // Live-Kanal verbunden
 
-function onVisible() { if (!document.hidden) fetchAll(); }
+const byPos = (a, b) => a.position - b.position;
+const listItems = id => items.filter(i => i.list_id === id).sort(byPos);
+const findList = id => lists.find(l => l.id === id);
+const findItem = id => items.find(i => i.id === id);
 
-function stopSync() {
-  if (channel) { db.removeChannel(channel); channel = null; }
-  if (poller) { clearInterval(poller); poller = null; }
-  document.removeEventListener("visibilitychange", onVisible);
-  ready = false;
-  seen = new Set();
-  update();
-  showLogin();
+function setStatus(state, text) {
+  const el = $("status");
+  el.classList.toggle("live", state === "live");
+  el.classList.toggle("error", state === "error");
+  $("status-text").textContent = text;
+}
+
+// ---------- Routing (#/ und #/liste/<id>) ----------
+function route() {
+  const m = location.hash.match(/^#\/liste\/([0-9a-f-]{36})$/i);
+  return m ? { view: "list", id: m[1] } : { view: "home" };
+}
+function goHome() {
+  if (cameFromHome) { cameFromHome = false; history.back(); }
+  else location.hash = "#/";
+}
+function openList(id) {
+  cameFromHome = true;
+  location.hash = "#/liste/" + id;
+}
+window.addEventListener("hashchange", () => {
+  if (route().view === "home") cameFromHome = false;
+  editing = false;
+  render();
+  window.scrollTo(0, 0);
+});
+
+// ---------- Daten laden & synchronisieren ----------
+async function fetchAll() {
+  if (!db || !channel) return;
+  if (inflight > 0 || dragging) { refetchLater = true; return; }
+  const [l, i] = await Promise.all([
+    db.from("lists").select("id,name,emoji,position").order("position"),
+    db.from("items").select("id,list_id,title,year,note,url,position,seen").order("position"),
+  ]);
+  if (l.error || i.error) { setStatus("error", "Laden fehlgeschlagen – bitte Seite neu laden"); return; }
+  if (inflight > 0 || dragging) { refetchLater = true; return; }
+  if (!channel) return; // inzwischen abgemeldet
+  lists = l.data;
+  items = i.data;
+  loaded = true;
+  if (subscribed) setStatus("live", "Live – alle sehen denselben Stand"); // alte Hinweise ausblenden
+  render();
+}
+
+function scheduleFetch() {
+  clearTimeout(refetchTimer);
+  refetchTimer = setTimeout(fetchAll, 200);
+}
+
+function settle() {
+  if (inflight === 0 && refetchLater && !dragging) { refetchLater = false; fetchAll(); }
+}
+
+// Führt einen Schreibvorgang aus. Lokal ist die Änderung schon sichtbar; bei Fehler wird neu geladen.
+async function write(op, failText) {
+  inflight++;
+  let ok = false;
+  try {
+    const { error } = await op();
+    ok = !error;
+  } catch (e) { ok = false; }
+  inflight--;
+  if (!ok) {
+    setStatus("error", failText || "Speichern fehlgeschlagen – Verbindung prüfen");
+    refetchLater = true;
+  }
+  settle();
+  return ok;
 }
 
 function startSync() {
-  loginForm.hidden = true;
-  document.getElementById("app").hidden = false;
+  $("login").hidden = true;
+  $("footer").hidden = false;
   if (channel) return; // läuft schon (z. B. nur Token verlängert)
   setStatus("", "Verbinde …");
-
-  const ch = channel = db.channel("seen-films")
-    .on("postgres_changes", { event: "*", schema: "public", table: TABLE }, payload => {
-      if (payload.eventType === "INSERT" && FILM_IDS.has(payload.new.film_id)) seen.add(payload.new.film_id);
-      else if (payload.eventType === "DELETE" && payload.old && payload.old.film_id) seen.delete(payload.old.film_id);
-      else return;
-      update();
-    })
+  const ch = channel = db.channel("watchlist")
+    .on("postgres_changes", { event: "*", schema: "public", table: "lists" }, scheduleFetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "items" }, scheduleFetch)
     .subscribe(status => {
-      if (ch !== channel) return; // alter Kanal nach Abmelden
+      if (ch !== channel) return;
+      subscribed = status === "SUBSCRIBED";
       if (status === "SUBSCRIBED") {
         setStatus("live", "Live – alle sehen denselben Stand");
         fetchAll(); // nach (Wieder-)Verbindung verpasste Änderungen nachholen
@@ -373,111 +505,463 @@ function startSync() {
         setStatus("error", "Verbindung unterbrochen – versuche es erneut …");
       }
     });
-
   fetchAll();
   document.addEventListener("visibilitychange", onVisible);
   poller = setInterval(onVisible, 30000);
 }
+function onVisible() { if (!document.hidden) fetchAll(); }
 
+function stopSync() {
+  if (channel) { db.removeChannel(channel); channel = null; }
+  subscribed = false;
+  if (poller) { clearInterval(poller); poller = null; }
+  document.removeEventListener("visibilitychange", onVisible);
+  lists = []; items = []; loaded = false;
+  $("home").hidden = true;
+  $("listview").hidden = true;
+  $("footer").hidden = true;
+  $("login").hidden = false;
+  $("login-error").textContent = "";
+  setStatus("", "Bitte Passwort eingeben");
+  $("password").focus();
+}
+
+// ---------- Anmeldung ----------
+$("login").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!db) return;
+  const btn = $("login-btn"), pw = $("password");
+  btn.disabled = true;
+  $("login-error").textContent = "";
+  const { error } = await db.auth.signInWithPassword({ email: LOGIN_EMAIL, password: pw.value });
+  btn.disabled = false;
+  if (error) {
+    $("login-error").textContent = /invalid/i.test(error.message)
+      ? "Falsches Passwort."
+      : "Anmeldung fehlgeschlagen – bitte später noch einmal versuchen.";
+    pw.select();
+  } else {
+    pw.value = "";
+    if (location.hash && location.hash !== "#/") location.hash = "#/"; // nach dem Anmelden: Startseite
+  }
+});
+$("logout").addEventListener("click", () => { if (db) db.auth.signOut(); });
+
+// ---------- Darstellung ----------
 function render() {
-  list.innerHTML = "";
-  FILMS.forEach((f, i) => {
+  if (!channel) return;
+  const r = route();
+  if (r.view === "list" && loaded && !findList(r.id)) {
+    setStatus("error", "Diese Liste gibt es nicht mehr.");
+    location.replace("#/");
+    return;
+  }
+  $("home").hidden = r.view !== "home";
+  $("listview").hidden = r.view !== "list";
+  const focusKey = document.activeElement && document.activeElement.dataset.focus;
+  if (r.view === "home") renderHome(); else renderList(r.id);
+  if (focusKey) {
+    const el = document.querySelector(`[data-focus="${focusKey}"]`);
+    if (el && el !== document.activeElement) el.focus({ preventScroll: true });
+  }
+}
+
+function progressOf(id) {
+  const its = listItems(id);
+  return { total: its.length, seen: its.filter(i => i.seen).length };
+}
+
+function renderHome() {
+  document.title = "Watchlist";
+  const wrap = $("tiles");
+  wrap.innerHTML = "";
+  if (!loaded) return;
+  [...lists].sort(byPos).forEach(l => {
+    const { total, seen } = progressOf(l.id);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "tile";
+    b.dataset.focus = "tile-" + l.id;
+    b.setAttribute("aria-label", `${l.name}, ${seen} von ${total} abgehakt`);
+    b.innerHTML = `<span class="emoji" aria-hidden="true"></span><span class="name"></span>
+      <span class="meta"></span><span class="mini"><span></span></span>`;
+    b.querySelector(".emoji").textContent = l.emoji;
+    b.querySelector(".name").textContent = l.name;
+    b.querySelector(".meta").textContent = `${seen} / ${total}`;
+    b.querySelector(".mini > span").style.width = total ? `${(seen / total) * 100}%` : "0";
+    b.addEventListener("click", () => openList(l.id));
+    wrap.append(b);
+  });
+  const add = document.createElement("button");
+  add.type = "button";
+  add.className = "tile new";
+  add.dataset.focus = "tile-new";
+  add.innerHTML = `<span class="emoji" aria-hidden="true">＋</span><span class="name">Neue Liste</span>`;
+  add.addEventListener("click", () => openListDialog(null));
+  wrap.append(add);
+}
+
+function progressText(seen, total) {
+  if (total === 0) return "Noch keine Einträge";
+  if (seen === 0) return "Noch nichts abgehakt";
+  if (seen === total) return "Alles geschafft! 🎉";
+  if (seen * 2 >= total) return "Mehr als die Hälfte geschafft";
+  return "Guter Anfang";
+}
+
+function renderList(id) {
+  const list = findList(id);
+  if (!list) { $("list-name").textContent = loaded ? "" : "Lade …"; return; }
+  document.title = `${list.name} – Watchlist`;
+  $("list-emoji").textContent = list.emoji;
+  $("list-name").textContent = list.name;
+
+  const its = listItems(id);
+  const seen = its.filter(i => i.seen).length;
+  $("count").textContent = `${seen} / ${its.length}`;
+  $("bar").style.width = its.length ? `${(seen / its.length) * 100}%` : "0";
+  $("label").textContent = progressText(seen, its.length);
+
+  const filter = filters[id] || "all";
+  document.querySelectorAll(".filter button").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.filter === filter)));
+  $("edit-toggle").setAttribute("aria-pressed", String(editing));
+  $("edit-toggle").textContent = editing ? "Fertig" : "Bearbeiten";
+
+  const ol = $("items");
+  ol.classList.toggle("editing", editing);
+  ol.innerHTML = "";
+  let visible = 0;
+  its.forEach((it, idx) => {
+    const show = filter === "all" || (filter === "seen" ? it.seen : !it.seen);
     const li = document.createElement("li");
-    li.dataset.id = f.id;
+    li.dataset.id = it.id;
+    li.classList.toggle("seen", it.seen);
+    li.hidden = !show;
+    if (show) visible++;
 
     const label = document.createElement("label");
     label.className = "check";
     const cb = document.createElement("input");
     cb.type = "checkbox";
-    cb.setAttribute("aria-label", `${f.title} (${f.year}) gesehen`);
-    cb.addEventListener("change", () => toggle(f.id, cb.checked));
+    cb.checked = it.seen;
+    cb.dataset.focus = "cb-" + it.id;
+    cb.setAttribute("aria-label", `${it.title}${it.year ? " (" + it.year + ")" : ""} abgehakt`);
+    cb.addEventListener("change", () => toggleSeen(it.id, cb.checked));
     label.append(cb, document.createElement("span"));
 
     const rank = document.createElement("div");
     rank.className = "rank";
-    rank.textContent = i + 1;
+    rank.textContent = idx + 1;
 
     const body = document.createElement("div");
+    body.className = "item-body";
     const title = document.createElement("div");
     title.className = "title";
-    const a = document.createElement("a");
-    a.href = `https://www.imdb.com/title/${f.id}/`;
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.textContent = f.title;
-    const year = document.createElement("span");
-    year.className = "year";
-    year.textContent = f.year;
-    title.append(a, year);
-    if (f.badge) {
-      const b = document.createElement("span");
-      b.className = "badge";
-      b.textContent = f.badge;
-      title.append(b);
+    const t = document.createElement(it.url ? "a" : "span");
+    t.className = "t";
+    t.textContent = it.title;
+    if (it.url) { t.href = it.url; t.target = "_blank"; t.rel = "noopener"; }
+    title.append(t);
+    if (it.year) {
+      const y = document.createElement("span");
+      y.className = "year";
+      y.textContent = it.year;
+      title.append(y);
     }
-    const desc = document.createElement("div");
-    desc.className = "desc";
-    desc.textContent = f.desc;
-    body.append(title, desc);
+    body.append(title);
+    if (it.note) {
+      const d = document.createElement("div");
+      d.className = "desc";
+      d.textContent = it.note;
+      body.append(d);
+    }
 
-    li.append(label, rank, body);
-    list.append(li);
+    const actions = document.createElement("div");
+    actions.className = "row-actions";
+    const ed = document.createElement("button");
+    ed.type = "button";
+    ed.className = "icon-btn";
+    ed.textContent = "✎";
+    ed.dataset.focus = "ed-" + it.id;
+    ed.setAttribute("aria-label", `„${it.title}“ bearbeiten`);
+    ed.addEventListener("click", () => openItemDialog(it.id));
+    const h = document.createElement("button");
+    h.type = "button";
+    h.className = "handle";
+    h.textContent = "⠿";
+    h.dataset.focus = "h-" + it.id;
+    h.setAttribute("aria-label", `„${it.title}“ verschieben: ziehen oder Pfeiltasten`);
+    h.addEventListener("keydown", e => {
+      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        e.preventDefault();
+        moveBy(it.id, e.key === "ArrowUp" ? -1 : 1);
+      }
+    });
+    actions.append(ed, h);
+
+    li.append(label, rank, body, actions);
+    ol.append(li);
   });
-  update();
+
+  const empty = $("empty");
+  empty.hidden = visible > 0;
+  empty.textContent = its.length === 0 ? "Noch keine Einträge – füge unten den ersten hinzu."
+    : filter === "seen" ? "Noch nichts abgehakt." : "Alles abgehakt!";
 }
 
-function update() {
-  const n = seen.size;
-  let visible = 0;
-  list.querySelectorAll("li").forEach(li => {
-    const isSeen = seen.has(li.dataset.id);
-    li.classList.toggle("seen", isSeen);
-    li.classList.toggle("locked", !ready);
-    const input = li.querySelector("input");
-    input.checked = isSeen;
-    input.disabled = !ready;
-    const show = filter === "all" || (filter === "seen" ? isSeen : !isSeen);
-    li.hidden = !show;
-    if (show) visible++;
-  });
-
-  document.getElementById("count").textContent = `${n} / ${FILMS.length}`;
-  document.getElementById("bar").style.width = `${(n / FILMS.length) * 100}%`;
-  document.getElementById("label").textContent =
-    n === 0 ? "Noch keinen gesehen" :
-    n === FILMS.length ? "Alle gesehen – König der Monster! 🦖" :
-    n >= 10 ? "Echter Kaiju-Kenner" :
-    "Guter Anfang";
-
-  const empty = document.getElementById("empty");
-  empty.style.display = visible ? "none" : "block";
-  empty.textContent = filter === "seen" ? "Noch nichts abgehakt." : "Alles gesehen!";
+// ---------- Aktionen: Einträge ----------
+function toggleSeen(id, seen) {
+  const it = findItem(id);
+  if (!it) return;
+  it.seen = seen;
+  render();
+  write(() => db.from("items").update({ seen }).eq("id", id));
 }
+
+function setPosition(it, before, after) {
+  // neue Position genau zwischen den Nachbarn
+  it.position = before && after ? (before.position + after.position) / 2
+    : before ? before.position + 1
+    : after ? after.position - 1
+    : 1;
+  render();
+  write(() => db.from("items").update({ position: it.position }).eq("id", it.id));
+}
+
+function moveBy(id, dir) {
+  const it = findItem(id);
+  const its = listItems(it.list_id);
+  const idx = its.indexOf(it);
+  const target = idx + dir;
+  if (target < 0 || target >= its.length) return;
+  const rest = its.filter(x => x !== it);
+  setPosition(it, rest[target - 1], rest[target]);
+}
+
+if (window.Sortable) Sortable.create($("items"), {
+  handle: ".handle",
+  animation: 150,
+  forceFallback: true,      // gleiches Verhalten mit Maus und Finger
+  fallbackTolerance: 3,
+  ghostClass: "ghost",
+  chosenClass: "chosen",
+  onStart: () => { dragging = true; },
+  onEnd: evt => {
+    dragging = false;
+    const it = findItem(evt.item.dataset.id);
+    if (it && evt.oldIndex !== evt.newIndex) {
+      const prev = evt.item.previousElementSibling, next = evt.item.nextElementSibling;
+      setPosition(it, prev && findItem(prev.dataset.id), next && findItem(next.dataset.id));
+    } else {
+      render();
+    }
+    settle();
+  },
+});
+
+$("edit-toggle").addEventListener("click", () => { editing = !editing; render(); });
 
 document.querySelectorAll(".filter button").forEach(btn => {
   btn.addEventListener("click", () => {
-    filter = btn.dataset.filter;
-    document.querySelectorAll(".filter button").forEach(b =>
-      b.setAttribute("aria-pressed", String(b === btn)));
-    update();
+    const r = route();
+    if (r.view !== "list") return;
+    filters[r.id] = btn.dataset.filter;
+    render();
   });
 });
 
-document.getElementById("reset").addEventListener("click", async () => {
-  if (!ready || seen.size === 0) return;
-  if (!confirm("Alle Häkchen entfernen? Das gilt für alle, die diese Liste benutzen.")) return;
-  const before = new Set(seen);
-  seen.clear();
-  update();
-  const ok = await write(() => db.from(TABLE).delete().in("film_id", [...FILM_IDS]));
-  if (!ok) {
-    seen = before;
-    update();
-    setStatus("error", "Zurücksetzen fehlgeschlagen – Verbindung prüfen");
+$("reset").addEventListener("click", () => {
+  const r = route();
+  const list = findList(r.id);
+  if (!list) return;
+  const its = listItems(r.id).filter(i => i.seen);
+  if (its.length === 0) return;
+  if (!confirm(`Alle Häkchen in „${list.name}“ entfernen? Das gilt für alle.`)) return;
+  its.forEach(i => { i.seen = false; });
+  render();
+  write(() => db.from("items").update({ seen: false }).eq("list_id", r.id).eq("seen", true),
+        "Zurücksetzen fehlgeschlagen – Verbindung prüfen");
+});
+
+// ---------- Dialog: Eintrag ----------
+let editingItemId = null;
+
+function openItemDialog(id) {
+  editingItemId = id;
+  const it = id ? findItem(id) : null;
+  $("item-dialog-title").textContent = it ? "Eintrag bearbeiten" : "Neuer Eintrag";
+  $("item-title").value = it ? it.title : "";
+  $("item-year").value = it && it.year ? it.year : "";
+  $("item-note").value = it && it.note ? it.note : "";
+  $("item-url").value = it && it.url ? it.url : "";
+  $("item-delete").hidden = !it;
+  $("item-error").textContent = "";
+  $("item-dialog").showModal();
+  $("item-title").focus();
+}
+
+function normalizeUrl(raw) {
+  const v = raw.trim();
+  if (!v) return null;
+  const withScheme = /^https?:\/\//i.test(v) ? v : "https://" + v;
+  try {
+    const u = new URL(withScheme);
+    return (u.protocol === "http:" || u.protocol === "https:") && u.hostname.includes(".") ? u.href : undefined;
+  } catch (e) { return undefined; }
+}
+
+$("add-item").addEventListener("click", () => openItemDialog(null));
+
+$("item-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const r = route();
+  const title = $("item-title").value.trim();
+  const yearRaw = $("item-year").value.trim();
+  const year = yearRaw ? Number(yearRaw) : null;
+  const note = $("item-note").value.trim() || null;
+  const url = normalizeUrl($("item-url").value);
+  const err = $("item-error");
+  if (!title) { err.textContent = "Bitte einen Titel eingeben."; $("item-title").focus(); return; }
+  if (year !== null && !(Number.isInteger(year) && year >= 1800 && year <= 2200)) {
+    err.textContent = "Das Jahr muss zwischen 1800 und 2200 liegen."; $("item-year").focus(); return;
+  }
+  if (url === undefined) { err.textContent = "Der Link sieht nicht gültig aus."; $("item-url").focus(); return; }
+
+  const fields = { title, year, note, url };
+  if (editingItemId) {
+    const it = findItem(editingItemId);
+    if (it) {
+      Object.assign(it, fields);
+      write(() => db.from("items").update(fields).eq("id", it.id));
+    }
+  } else if (findList(r.id)) {
+    const its = listItems(r.id);
+    const position = its.length ? its[its.length - 1].position + 1 : 1;
+    const row = { id: crypto.randomUUID(), list_id: r.id, seen: false, position, ...fields };
+    items.push(row);
+    if ((filters[r.id] || "all") === "seen") filters[r.id] = "all"; // neuer Eintrag soll sichtbar sein
+    write(() => db.from("items").insert(row));
+  }
+  $("item-dialog").close();
+  render();
+});
+
+$("item-delete").addEventListener("click", () => {
+  const it = findItem(editingItemId);
+  if (!it) return;
+  if (!confirm(`„${it.title}“ löschen?`)) return;
+  items = items.filter(i => i !== it);
+  $("item-dialog").close();
+  render();
+  write(() => db.from("items").delete().eq("id", it.id));
+});
+
+// ---------- Dialog: Liste ----------
+let editingListId = null;
+let chosenEmoji = EMOJIS[0];
+
+function firstGrapheme(s) {
+  s = s.trim();
+  if (!s) return "";
+  if (window.Intl && Intl.Segmenter) {
+    for (const { segment } of new Intl.Segmenter("de", { granularity: "grapheme" }).segment(s)) return segment;
+  }
+  return Array.from(s)[0];
+}
+
+function setEmoji(e) {
+  chosenEmoji = e;
+  $("emoji-preview").textContent = e;
+  $("emoji-grid").querySelectorAll("button").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.textContent === e)));
+}
+
+EMOJIS.forEach(e => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = e;
+  b.setAttribute("aria-pressed", "false");
+  b.addEventListener("click", () => { $("emoji-input").value = ""; setEmoji(e); });
+  $("emoji-grid").append(b);
+});
+$("emoji-input").addEventListener("input", () => {
+  const g = firstGrapheme($("emoji-input").value);
+  if (g) setEmoji(g);
+});
+
+function openListDialog(id) {
+  editingListId = id;
+  const l = id ? findList(id) : null;
+  $("list-dialog-title").textContent = l ? "Liste bearbeiten" : "Neue Liste";
+  $("list-name-input").value = l ? l.name : "";
+  $("emoji-input").value = l && !EMOJIS.includes(l.emoji) ? l.emoji : "";
+  setEmoji(l ? l.emoji : EMOJIS[0]);
+  $("list-delete").hidden = !l;
+  $("list-error").textContent = "";
+  $("list-dialog").showModal();
+  $("list-name-input").focus();
+}
+
+$("list-edit").addEventListener("click", () => openListDialog(route().id));
+$("list-emoji").addEventListener("click", () => openListDialog(route().id));
+
+$("list-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = $("list-name-input").value.trim();
+  const emoji = chosenEmoji;
+  if (!name) { $("list-error").textContent = "Bitte einen Namen eingeben."; $("list-name-input").focus(); return; }
+  if (!emoji) { $("list-error").textContent = "Bitte ein Emoji wählen."; return; }
+  if (editingListId) {
+    const l = findList(editingListId);
+    if (l) {
+      Object.assign(l, { name, emoji });
+      write(() => db.from("lists").update({ name, emoji }).eq("id", l.id));
+    }
+    $("list-dialog").close();
+    render();
+  } else {
+    const position = lists.length ? Math.max(...lists.map(l => l.position)) + 1 : 1;
+    const row = { id: crypto.randomUUID(), name, emoji, position };
+    lists.push(row);
+    write(() => db.from("lists").insert(row), "Liste konnte nicht angelegt werden – Verbindung prüfen");
+    $("list-dialog").close();
+    openList(row.id);
   }
 });
 
-render();
+$("list-delete").addEventListener("click", () => {
+  const l = findList(editingListId);
+  if (!l) return;
+  const n = listItems(l.id).length;
+  if (!confirm(`Liste „${l.name}“ mit ${n} ${n === 1 ? "Eintrag" : "Einträgen"} löschen? Das gilt für alle und lässt sich nicht rückgängig machen.`)) return;
+  lists = lists.filter(x => x !== l);
+  items = items.filter(i => i.list_id !== l.id);
+  $("list-dialog").close();
+  write(() => db.from("lists").delete().eq("id", l.id));
+  location.replace("#/");
+});
+
+document.querySelectorAll("dialog [data-close]").forEach(b =>
+  b.addEventListener("click", () => b.closest("dialog").close()));
+
+$("back").addEventListener("click", goHome);
+
+// ---------- Start ----------
+function connect() {
+  if (!window.supabase) {
+    setStatus("error", "Supabase-Bibliothek konnte nicht geladen werden – bitte Seite neu laden");
+    return;
+  }
+  // Die Anmeldung bleibt im Browser gespeichert und wird automatisch verlängert.
+  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, storageKey: "watchlist-auth" },
+  });
+  db.auth.onAuthStateChange((event, session) => {
+    // Der Callback darf selbst keine Supabase-Aufrufe abwarten, daher setTimeout.
+    setTimeout(() => session ? startSync() : stopSync(), 0);
+  });
+}
 connect();
 </script>
 </body>
