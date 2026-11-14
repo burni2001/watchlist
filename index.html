@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Godzilla – Die 20 besten Filme zum Abhaken</title>
+<meta name="description" content="Die 20 besten Godzilla-Filme aller Zeiten – zum Abhaken, mit IMDb-Links.">
+<style>
+  :root {
+    --bg: #0d1110;
+    --panel: #151b19;
+    --panel-2: #1b2320;
+    --line: #26302c;
+    --text: #e8eee9;
+    --muted: #8d9a94;
+    --glow: #5cf2c4;
+    --glow-dim: #2a8c70;
+    --danger: #ff6b5a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background:
+      radial-gradient(1200px 500px at 50% -200px, rgba(92, 242, 196, 0.10), transparent 70%),
+      var(--bg);
+    color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 64px; }
+
+  header h1 {
+    margin: 0 0 4px;
+    font-size: clamp(28px, 6vw, 44px);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  header h1 span { color: var(--glow); text-shadow: 0 0 24px rgba(92, 242, 196, 0.45); }
+  header p { margin: 0; color: var(--muted); }
+
+  .status { display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .status.live .dot { background: var(--glow); box-shadow: 0 0 8px rgba(92, 242, 196, 0.8); }
+  .status.error .dot { background: var(--danger); }
+  .status.error { color: var(--danger); }
+  li.locked .check input { cursor: not-allowed; }
+
+  .progress {
+    margin: 28px 0 20px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .progress-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .progress-count { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .progress-label { color: var(--muted); font-size: 14px; }
+  .bar { height: 8px; background: var(--panel-2); border-radius: 99px; margin-top: 10px; overflow: hidden; }
+  .bar > div {
+    height: 100%; width: 0;
+    background: linear-gradient(90deg, var(--glow-dim), var(--glow));
+    box-shadow: 0 0 12px rgba(92, 242, 196, 0.6);
+    border-radius: 99px;
+    transition: width .35s ease;
+  }
+
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  .filter { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .filter button, .reset {
+    font: inherit; font-size: 14px; color: var(--muted);
+    background: none; border: 0; border-radius: 7px;
+    padding: 6px 12px; cursor: pointer;
+  }
+  .filter button[aria-pressed="true"] { background: var(--panel-2); color: var(--text); }
+  .reset { margin-left: auto; border: 1px solid var(--line); }
+  .reset:hover { color: var(--danger); border-color: var(--danger); }
+
+  ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  li {
+    display: grid;
+    grid-template-columns: auto 2.2em 1fr;
+    gap: 12px;
+    align-items: start;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    transition: border-color .2s, background .2s, opacity .2s;
+  }
+  li.seen { border-color: rgba(92, 242, 196, 0.35); background: #142019; }
+  li.seen .title a { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(92,242,196,.6); }
+  li[hidden] { display: none; }
+
+  .check { position: relative; width: 26px; height: 26px; margin-top: 1px; }
+  .check input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .check span {
+    display: block; width: 26px; height: 26px;
+    border: 2px solid var(--glow-dim); border-radius: 7px;
+    transition: all .15s;
+  }
+  .check input:checked + span {
+    background: var(--glow); border-color: var(--glow);
+    box-shadow: 0 0 14px rgba(92, 242, 196, 0.55);
+  }
+  .check input:checked + span::after {
+    content: ""; position: absolute; left: 9px; top: 4px; width: 7px; height: 13px;
+    border: solid #0d1110; border-width: 0 3px 3px 0; transform: rotate(45deg);
+  }
+  .check input:focus-visible + span { outline: 2px solid var(--glow); outline-offset: 3px; }
+
+  .rank { font-weight: 700; color: var(--glow-dim); font-variant-numeric: tabular-nums; padding-top: 1px; }
+  .title { font-weight: 600; }
+  .title a { color: var(--text); text-decoration: none; }
+  .title a:hover { color: var(--glow); }
+  .title a::after { content: " ↗"; font-size: 12px; color: var(--muted); }
+  .year { color: var(--muted); font-weight: 400; margin-left: 6px; font-variant-numeric: tabular-nums; }
+  .desc { color: var(--muted); font-size: 14px; margin-top: 2px; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .03em;
+    color: var(--glow); border: 1px solid var(--glow-dim); border-radius: 99px;
+    padding: 0 7px; margin-left: 6px; vertical-align: 2px;
+  }
+
+  .empty { color: var(--muted); text-align: center; padding: 24px; display: none; }
+  footer { margin-top: 32px; color: var(--muted); font-size: 13px; text-align: center; }
+  footer a { color: var(--muted); }
+
+  @media (max-width: 480px) {
+    li { grid-template-columns: auto 1.8em 1fr; gap: 10px; padding: 12px; }
+    .reset { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Die 20 besten <span>Godzilla</span>-Filme</h1>
+    <p>Eine gemeinsame Liste für alle: Wer etwas abhakt, sieht es sofort bei allen anderen.</p>
+    <div class="status" id="status" role="status"><span class="dot"></span><span id="status-text">Verbinde …</span></div>
+  </header>
+
+  <section class="progress" aria-live="polite">
+    <div class="progress-top">
+      <div class="progress-count" id="count">0 / 20</div>
+      <div class="progress-label" id="label">Noch keinen gesehen</div>
+    </div>
+    <div class="bar"><div id="bar"></div></div>
+  </section>
+
+  <div class="toolbar">
+    <div class="filter" role="group" aria-label="Filter">
+      <button type="button" data-filter="all" aria-pressed="true">Alle</button>
+      <button type="button" data-filter="open" aria-pressed="false">Offen</button>
+      <button type="button" data-filter="seen" aria-pressed="false">Gesehen</button>
+    </div>
+    <button type="button" class="reset" id="reset">Zurücksetzen</button>
+  </div>
+
+  <ol id="list"></ol>
+  <p class="empty" id="empty"></p>
+
+  <footer>Titel verlinken auf die jeweiligen <a href="https://www.imdb.com/" target="_blank" rel="noopener">IMDb</a>-Einträge.</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"
+        integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK"
+        crossorigin="anonymous"></script>
+<script>
+// Supabase-Projekt: Project Settings → API (bzw. „Connect“).
+// Der öffentliche Schlüssel (publishable / anon) darf hier stehen; die Rechte regeln die Datenbank-Regeln.
+const SUPABASE_URL = "";
+const SUPABASE_KEY = "";
+const TABLE = "seen_films";
+
+const FILMS = [
+  { id: "tt0047034",  title: "Godzilla", year: 1954, desc: "Das düstere Original über die Atombombe" },
+  { id: "tt23289160", title: "Godzilla Minus One", year: 2023, desc: "Nachkriegsdrama, Oscar für die visuellen Effekte" },
+  { id: "tt4262980",  title: "Shin Godzilla", year: 2016, desc: "Satire auf die japanischen Behörden" },
+  { id: "tt0113187",  title: "Godzilla gegen Destoroyah", year: 1995, desc: "Godzillas Kernschmelze" },
+  { id: "tt0279112",  title: "GMK – Giant Monsters All-Out Attack", year: 2001, desc: "Godzilla als Rachegeist der Kriegstoten" },
+  { id: "tt0058379",  title: "Godzilla und die Urweltraupen", year: 1964, desc: "Godzilla gegen Mothra" },
+  { id: "tt0097444",  title: "Godzilla vs. Biollante", year: 1989, desc: "Gentechnik und ein Pflanzenmonster" },
+  { id: "tt0058544",  title: "Frankensteins Monster im Kampf gegen Ghidorah", year: 1964, desc: "King Ghidorahs erster Auftritt" },
+  { id: "tt0067148",  title: "Frankensteins Kampf gegen die Teufelsmonster", year: 1971, desc: "Godzilla gegen das Smog-Monster Hedorah" },
+  { id: "tt0831387",  title: "Godzilla", year: 2014, desc: "Gareth Edwards' Version, das Monster ist lange kaum zu sehen" },
+  { id: "tt0071565",  title: "Godzilla gegen Mechagodzilla", year: 1974, desc: "Godzilla gegen seinen Roboter-Doppelgänger" },
+  { id: "tt0063172",  title: "Frankenstein und die Monster aus dem All", year: 1968, desc: "Fast alle Toho-Monster gegen Außerirdische" },
+  { id: "tt3741700",  title: "Godzilla II: King of the Monsters", year: 2019, desc: "Godzilla gegen Ghidorah in Hollywood-Größe" },
+  { id: "tt34384661", title: "Godzilla Minus Zero", year: 2026, desc: "Fortsetzung von Minus One, gerade im Kino", badge: "Neu" },
+  { id: "tt9015178",  title: "The Return of Godzilla", year: 1984, desc: "Neustart vor dem Hintergrund des Kalten Kriegs" },
+  { id: "tt0101962",  title: "Godzilla – Duell der Megasaurier", year: 1991, desc: "Zeitreisen und Godzillas Herkunft" },
+  { id: "tt5034838",  title: "Godzilla vs. Kong", year: 2021, desc: "Popcorn-Kino mit Nachtkampf in Hongkong" },
+  { id: "tt0399102",  title: "Godzilla: Final Wars", year: 2004, desc: "Überdrehte Jubiläumsparty mit fast allen Monstern" },
+  { id: "tt13364334", title: "Die Rückkehr des King Kong", year: 1962, desc: "Das erste Duell zwischen Godzilla und Kong" },
+  { id: "tt0188640",  title: "Godzilla 2000 Millennium", year: 1999, desc: "Japans Antwort auf den US-Godzilla von 1998" },
+];
+
+const FILM_IDS = new Set(FILMS.map(f => f.id));
+let seen = new Set();
+let filter = "all";
+let db = null;
+let ready = false;      // erste Daten vom Server geladen
+let inflight = 0;       // laufende Schreibvorgänge
+let refetchLater = false;
+
+const list = document.getElementById("list");
+
+function setStatus(state, text) {
+  const el = document.getElementById("status");
+  el.classList.toggle("live", state === "live");
+  el.classList.toggle("error", state === "error");
+  document.getElementById("status-text").textContent = text;
+}
+
+// Holt den kompletten Stand vom Server (20 Zeilen, also billig).
+async function fetchAll() {
+  if (!db) return;
+  if (inflight > 0) { refetchLater = true; return; }
+  const { data, error } = await db.from(TABLE).select("film_id");
+  if (error) { setStatus("error", "Laden fehlgeschlagen – bitte Seite neu laden"); return; }
+  if (inflight > 0) { refetchLater = true; return; }
+  seen = new Set(data.map(r => r.film_id).filter(id => FILM_IDS.has(id)));
+  ready = true;
+  update();
+}
+
+async function write(op) {
+  inflight++;
+  try {
+    const { error } = await op();
+    return !error;
+  } catch (e) {
+    return false;
+  } finally {
+    inflight--;
+    if (inflight === 0 && refetchLater) { refetchLater = false; fetchAll(); }
+  }
+}
+
+async function toggle(id, checked) {
+  // sofort anzeigen, dann speichern; bei Fehler zurückdrehen
+  checked ? seen.add(id) : seen.delete(id);
+  update();
+  const ok = await write(() => checked
+    ? db.from(TABLE).upsert({ film_id: id }, { onConflict: "film_id", ignoreDuplicates: true })
+    : db.from(TABLE).delete().eq("film_id", id));
+  if (!ok) {
+    setStatus("error", "Speichern fehlgeschlagen – Verbindung prüfen");
+    fetchAll();
+  }
+}
+
+function connect() {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    setStatus("error", "Noch nicht mit der Datenbank verbunden (Zugangsdaten fehlen)");
+    return;
+  }
+  if (!window.supabase) {
+    setStatus("error", "Supabase-Bibliothek konnte nicht geladen werden");
+    return;
+  }
+  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  db.channel("seen-films")
+    .on("postgres_changes", { event: "*", schema: "public", table: TABLE }, payload => {
+      if (payload.eventType === "INSERT" && FILM_IDS.has(payload.new.film_id)) seen.add(payload.new.film_id);
+      else if (payload.eventType === "DELETE" && payload.old && payload.old.film_id) seen.delete(payload.old.film_id);
+      else return;
+      update();
+    })
+    .subscribe(status => {
+      if (status === "SUBSCRIBED") {
+        setStatus("live", "Live – alle sehen denselben Stand");
+        fetchAll(); // nach (Wieder-)Verbindung verpasste Änderungen nachholen
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        setStatus("error", "Verbindung unterbrochen – versuche es erneut …");
+      }
+    });
+
+  fetchAll();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) fetchAll(); });
+  setInterval(() => { if (!document.hidden) fetchAll(); }, 30000);
+}
+
+function render() {
+  list.innerHTML = "";
+  FILMS.forEach((f, i) => {
+    const li = document.createElement("li");
+    li.dataset.id = f.id;
+
+    const label = document.createElement("label");
+    label.className = "check";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.setAttribute("aria-label", `${f.title} (${f.year}) gesehen`);
+    cb.addEventListener("change", () => toggle(f.id, cb.checked));
+    label.append(cb, document.createElement("span"));
+
+    const rank = document.createElement("div");
+    rank.className = "rank";
+    rank.textContent = i + 1;
+
+    const body = document.createElement("div");
+    const title = document.createElement("div");
+    title.className = "title";
+    const a = document.createElement("a");
+    a.href = `https://www.imdb.com/title/${f.id}/`;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = f.title;
+    const year = document.createElement("span");
+    year.className = "year";
+    year.textContent = f.year;
+    title.append(a, year);
+    if (f.badge) {
+      const b = document.createElement("span");
+      b.className = "badge";
+      b.textContent = f.badge;
+      title.append(b);
+    }
+    const desc = document.createElement("div");
+    desc.className = "desc";
+    desc.textContent = f.desc;
+    body.append(title, desc);
+
+    li.append(label, rank, body);
+    list.append(li);
+  });
+  update();
+}
+
+function update() {
+  const n = seen.size;
+  let visible = 0;
+  list.querySelectorAll("li").forEach(li => {
+    const isSeen = seen.has(li.dataset.id);
+    li.classList.toggle("seen", isSeen);
+    li.classList.toggle("locked", !ready);
+    const input = li.querySelector("input");
+    input.checked = isSeen;
+    input.disabled = !ready;
+    const show = filter === "all" || (filter === "seen" ? isSeen : !isSeen);
+    li.hidden = !show;
+    if (show) visible++;
+  });
+
+  document.getElementById("count").textContent = `${n} / ${FILMS.length}`;
+  document.getElementById("bar").style.width = `${(n / FILMS.length) * 100}%`;
+  document.getElementById("label").textContent =
+    n === 0 ? "Noch keinen gesehen" :
+    n === FILMS.length ? "Alle gesehen – König der Monster! 🦖" :
+    n >= 10 ? "Echter Kaiju-Kenner" :
+    "Guter Anfang";
+
+  const empty = document.getElementById("empty");
+  empty.style.display = visible ? "none" : "block";
+  empty.textContent = filter === "seen" ? "Noch nichts abgehakt." : "Alles gesehen!";
+}
+
+document.querySelectorAll(".filter button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    filter = btn.dataset.filter;
+    document.querySelectorAll(".filter button").forEach(b =>
+      b.setAttribute("aria-pressed", String(b === btn)));
+    update();
+  });
+});
+
+document.getElementById("reset").addEventListener("click", async () => {
+  if (!ready || seen.size === 0) return;
+  if (!confirm("Alle Häkchen entfernen? Das gilt für alle, die diese Liste benutzen.")) return;
+  const before = new Set(seen);
+  seen.clear();
+  update();
+  const ok = await write(() => db.from(TABLE).delete().in("film_id", [...FILM_IDS]));
+  if (!ok) {
+    seen = before;
+    update();
+    setStatus("error", "Zurücksetzen fehlgeschlagen – Verbindung prüfen");
+  }
+});
+
+render();
+connect();
+</script>
+</body>
+</html>
