@@ -45,6 +45,26 @@
   .status.error { color: var(--danger); }
   li.locked .check input { cursor: not-allowed; }
 
+  .login {
+    margin: 28px 0 0; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 14px; padding: 20px 18px;
+  }
+  .login label { display: block; font-weight: 600; margin-bottom: 8px; }
+  .login-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .login input {
+    flex: 1 1 200px; min-width: 0; font: inherit; color: var(--text);
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px;
+  }
+  .login input:focus { outline: 2px solid var(--glow-dim); outline-offset: 1px; border-color: var(--glow-dim); }
+  .login button {
+    font: inherit; font-weight: 600; color: #0d1110; background: var(--glow);
+    border: 0; border-radius: 10px; padding: 9px 18px; cursor: pointer;
+  }
+  .login button:disabled { opacity: .6; cursor: wait; }
+  .login-error { color: var(--danger); font-size: 14px; margin: 10px 0 0; min-height: 1.5em; }
+  .logout { background: none; border: 0; padding: 0; font: inherit; color: var(--muted); text-decoration: underline; cursor: pointer; }
+  [hidden] { display: none !important; }
+
   .progress {
     margin: 28px 0 20px;
     background: var(--panel);
@@ -135,10 +155,20 @@
 <div class="wrap">
   <header>
     <h1>Die 20 besten <span>Godzilla</span>-Filme</h1>
-    <p>Eine gemeinsame Liste für alle: Wer etwas abhakt, sieht es sofort bei allen anderen.</p>
+    <p>Geteilte Liste für die Bärenbande</p>
     <div class="status" id="status" role="status"><span class="dot"></span><span id="status-text">Verbinde …</span></div>
   </header>
 
+  <form class="login" id="login" hidden>
+    <label for="password">Passwort</label>
+    <div class="login-row">
+      <input type="password" id="password" autocomplete="current-password" required>
+      <button type="submit" id="login-btn">Öffnen</button>
+    </div>
+    <p class="login-error" id="login-error" aria-live="polite"></p>
+  </form>
+
+  <main id="app" hidden>
   <section class="progress" aria-live="polite">
     <div class="progress-top">
       <div class="progress-count" id="count">0 / 20</div>
@@ -159,7 +189,8 @@
   <ol id="list"></ol>
   <p class="empty" id="empty"></p>
 
-  <footer>Titel verlinken auf die jeweiligen <a href="https://www.imdb.com/" target="_blank" rel="noopener">IMDb</a>-Einträge.</footer>
+  <footer>Titel verlinken auf die jeweiligen <a href="https://www.imdb.com/" target="_blank" rel="noopener">IMDb</a>-Einträge. · <button type="button" class="logout" id="logout">Abmelden</button></footer>
+  </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"
@@ -171,6 +202,8 @@
 const SUPABASE_URL = "https://cjwxztggnsvwnxcqulur.supabase.co";
 const SUPABASE_KEY = "sb_publishable_p7i_LcPHvG-wd0Jh_zeQ-A_Hd4R1YBj";
 const TABLE = "seen_films";
+// Gemeinsamer Benutzer für alle Freunde; nur das Passwort wird abgefragt.
+const LOGIN_EMAIL = "watchlist@example.com";
 
 const FILMS = [
   { id: "tt0047034",  title: "Godzilla", year: 1954, desc: "Das düstere Original über die Atombombe" },
@@ -214,11 +247,12 @@ function setStatus(state, text) {
 
 // Holt den kompletten Stand vom Server (20 Zeilen, also billig).
 async function fetchAll() {
-  if (!db) return;
+  if (!db || !channel) return;
   if (inflight > 0) { refetchLater = true; return; }
   const { data, error } = await db.from(TABLE).select("film_id");
   if (error) { setStatus("error", "Laden fehlgeschlagen – bitte Seite neu laden"); return; }
   if (inflight > 0) { refetchLater = true; return; }
+  if (!channel) return; // inzwischen abgemeldet
   seen = new Set(data.map(r => r.film_id).filter(id => FILM_IDS.has(id)));
   ready = true;
   update();
@@ -259,11 +293,71 @@ function connect() {
     setStatus("error", "Supabase-Bibliothek konnte nicht geladen werden");
     return;
   }
+  // Die Anmeldung bleibt im Browser gespeichert und wird automatisch verlängert.
   db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
+    auth: { persistSession: true, autoRefreshToken: true, storageKey: "watchlist-auth" },
   });
 
-  db.channel("seen-films")
+  db.auth.onAuthStateChange((event, session) => {
+    // Der Callback darf selbst keine Supabase-Aufrufe abwarten, daher setTimeout.
+    setTimeout(() => session ? startSync() : stopSync(), 0);
+  });
+}
+
+const loginForm = document.getElementById("login");
+const loginError = document.getElementById("login-error");
+const loginBtn = document.getElementById("login-btn");
+const pwInput = document.getElementById("password");
+
+function showLogin(message) {
+  document.getElementById("app").hidden = true;
+  loginForm.hidden = false;
+  loginError.textContent = message || "";
+  setStatus("", "Bitte Passwort eingeben");
+  pwInput.focus();
+}
+
+loginForm.addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!db) return;
+  loginBtn.disabled = true;
+  loginError.textContent = "";
+  const { error } = await db.auth.signInWithPassword({ email: LOGIN_EMAIL, password: pwInput.value });
+  loginBtn.disabled = false;
+  if (error) {
+    loginError.textContent = /invalid/i.test(error.message)
+      ? "Falsches Passwort."
+      : "Anmeldung fehlgeschlagen – bitte später noch einmal versuchen.";
+    pwInput.select();
+  } else {
+    pwInput.value = "";
+  }
+});
+
+document.getElementById("logout").addEventListener("click", () => { if (db) db.auth.signOut(); });
+
+let channel = null;
+let poller = null;
+
+function onVisible() { if (!document.hidden) fetchAll(); }
+
+function stopSync() {
+  if (channel) { db.removeChannel(channel); channel = null; }
+  if (poller) { clearInterval(poller); poller = null; }
+  document.removeEventListener("visibilitychange", onVisible);
+  ready = false;
+  seen = new Set();
+  update();
+  showLogin();
+}
+
+function startSync() {
+  loginForm.hidden = true;
+  document.getElementById("app").hidden = false;
+  if (channel) return; // läuft schon (z. B. nur Token verlängert)
+  setStatus("", "Verbinde …");
+
+  const ch = channel = db.channel("seen-films")
     .on("postgres_changes", { event: "*", schema: "public", table: TABLE }, payload => {
       if (payload.eventType === "INSERT" && FILM_IDS.has(payload.new.film_id)) seen.add(payload.new.film_id);
       else if (payload.eventType === "DELETE" && payload.old && payload.old.film_id) seen.delete(payload.old.film_id);
@@ -271,6 +365,7 @@ function connect() {
       update();
     })
     .subscribe(status => {
+      if (ch !== channel) return; // alter Kanal nach Abmelden
       if (status === "SUBSCRIBED") {
         setStatus("live", "Live – alle sehen denselben Stand");
         fetchAll(); // nach (Wieder-)Verbindung verpasste Änderungen nachholen
@@ -280,8 +375,8 @@ function connect() {
     });
 
   fetchAll();
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) fetchAll(); });
-  setInterval(() => { if (!document.hidden) fetchAll(); }, 30000);
+  document.addEventListener("visibilitychange", onVisible);
+  poller = setInterval(onVisible, 30000);
 }
 
 function render() {
