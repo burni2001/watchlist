@@ -40,7 +40,12 @@
   button { font: inherit; color: inherit; }
   .wrap {
     max-width: 760px; margin: 0 auto;
-    padding: max(28px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 64px max(20px, env(safe-area-inset-left));
+    /* Abstand kommt zur iPhone-Statusleiste hinzu, damit der Kopf nicht im unscharfen Streifen liegt */
+    padding:
+      calc(28px + env(safe-area-inset-top, 0px))
+      calc(20px + env(safe-area-inset-right, 0px))
+      calc(64px + env(safe-area-inset-bottom, 0px))
+      calc(20px + env(safe-area-inset-left, 0px));
   }
 
   /* Kopf */
@@ -243,8 +248,10 @@
 
   /* Dialoge */
   dialog {
-    width: min(480px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto;
-    margin: max(6vh, env(safe-area-inset-top)) auto auto;
+    width: min(480px, calc(100vw - 24px));
+    max-height: calc(100dvh - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    overflow: auto;
+    margin: calc(max(6vh, 16px) + env(safe-area-inset-top, 0px)) auto auto;
     background: var(--panel); color: var(--text);
     border: 1px solid var(--line); border-radius: 16px; padding: 20px;
   }
