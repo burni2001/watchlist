@@ -24,6 +24,7 @@
     --glow: #5cf2c4;
     --glow-dim: #2a8c70;
     --danger: #ff6b5a;
+    --new: #f3e3a1;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
@@ -92,6 +93,7 @@
   .section-title { margin: 32px 0 12px; font-size: 14px; font-weight: 600; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
   .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
   .tile {
+    position: relative;
     display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left;
     background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
     padding: 16px; cursor: pointer; min-height: 150px;
@@ -108,6 +110,14 @@
   .tile .meta { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .tile .mini { width: 100%; height: 4px; background: var(--panel-2); border-radius: 99px; overflow: hidden; }
   .tile .mini > span { display: block; height: 100%; background: var(--glow); box-shadow: 0 0 8px rgba(92, 242, 196, .6); border-radius: 99px; }
+  .new-dot {
+    position: absolute; top: 12px; right: 12px; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--new); box-shadow: 0 0 8px rgba(243, 227, 161, .55);
+  }
+  .item-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: 2px;
+    background: var(--new); box-shadow: 0 0 6px rgba(243, 227, 161, .55);
+  }
   .tile.new { border-style: dashed; justify-content: center; align-items: center; text-align: center; color: var(--muted); }
   .tile.new .emoji { font-size: 34px; color: var(--glow); }
   .tile.new .name { flex: none; } /* sonst füllt der Text die Höhe und hängt oben */
@@ -490,6 +500,29 @@ const listItems = id => items.filter(i => i.list_id === id).sort(byPos);
 const findList = id => lists.find(l => l.id === id);
 const findItem = id => items.find(i => i.id === id);
 
+// ---------- „Neu“-Markierung (pro Gerät, im Browser gespeichert) ----------
+// Merkt sich je Liste den jüngsten Eintrag, den dieses Gerät schon gesehen hat.
+// Verglichen wird mit created_at aus der Datenbank, damit falsche Uhren nicht stören.
+const MARKS_KEY = "watchlist-seen-v1";
+let marks = (() => {
+  try { return JSON.parse(localStorage.getItem(MARKS_KEY)) || { base: null, lists: {} }; }
+  catch (e) { return { base: null, lists: {} }; }
+})();
+const saveMarks = () => { try { localStorage.setItem(MARKS_KEY, JSON.stringify(marks)); } catch (e) {} };
+const ownIds = new Set();     // auf diesem Gerät angelegt → nie „neu“
+let visitBase = {};           // Stand beim Öffnen der Liste; Punkte bleiben während des Besuchs
+const latest = rows => rows.reduce((m, r) => (r.created_at && r.created_at > m ? r.created_at : m), "");
+const baseOf = listId => marks.lists[listId] || marks.base || "";
+const isNewRow = (r, base) => Boolean(r.created_at) && r.created_at > base && !ownIds.has(r.id);
+function listHasNews(l) {
+  const base = baseOf(l.id);
+  return (!marks.lists[l.id] && isNewRow(l, marks.base || "")) || listItems(l.id).some(i => isNewRow(i, base));
+}
+function markListSeen(id) {
+  const top = latest(listItems(id).concat(findList(id) || []));
+  if (top > baseOf(id) || !marks.lists[id]) { marks.lists[id] = top > baseOf(id) ? top : baseOf(id); saveMarks(); }
+}
+
 function setStatus(state, text) {
   const el = $("status");
   el.classList.toggle("live", state === "live");
@@ -511,6 +544,7 @@ function openList(id) {
   location.hash = "#/liste/" + id;
 }
 window.addEventListener("hashchange", () => {
+  visitBase = {};
   if (route().view === "home") cameFromHome = false;
   render();
   window.scrollTo(0, 0);
@@ -521,8 +555,8 @@ async function fetchAll() {
   if (!db || !channel) return;
   if (inflight > 0 || dragging) { refetchLater = true; return; }
   const [l, i] = await Promise.all([
-    db.from("lists").select("id,name,emoji,position").order("position"),
-    db.from("items").select("id,list_id,title,year,note,url,position,seen").order("position"),
+    db.from("lists").select("id,name,emoji,position,created_at").order("position"),
+    db.from("items").select("id,list_id,title,year,note,url,position,seen,created_at").order("position"),
   ]);
   if (l.error || i.error) { setStatus("error", "Laden fehlgeschlagen – bitte Seite neu laden"); return; }
   if (inflight > 0 || dragging) { refetchLater = true; return; }
@@ -530,6 +564,7 @@ async function fetchAll() {
   lists = l.data;
   items = i.data;
   loaded = true;
+  if (marks.base === null) { marks.base = latest(lists.concat(items)) || "0"; saveMarks(); } // erster Start: nichts ist neu
   if (subscribed) setStatus("live", "Live – alle sehen denselben Stand"); // alte Hinweise ausblenden
   render();
 }
@@ -662,6 +697,13 @@ function renderHome() {
     b.querySelector(".name").textContent = l.name;
     b.querySelector(".meta").textContent = `${seen} / ${total}`;
     b.querySelector(".mini > span").style.width = total ? `${(seen / total) * 100}%` : "0";
+    if (listHasNews(l)) {
+      const dot = document.createElement("span");
+      dot.className = "new-dot";
+      dot.title = "Neue Einträge";
+      b.append(dot);
+      b.setAttribute("aria-label", b.getAttribute("aria-label") + ", neue Einträge");
+    }
     b.addEventListener("click", () => openList(l.id));
     wrap.append(b);
   });
@@ -690,6 +732,10 @@ function renderList(id) {
   $("list-name").textContent = list.name;
 
   const its = listItems(id);
+  if (loaded) {
+    if (!(id in visitBase)) visitBase[id] = baseOf(id);
+    markListSeen(id); // fürs nächste Mal als gesehen merken
+  }
   const seen = its.filter(i => i.seen).length;
   $("count").textContent = `${seen} / ${its.length}`;
   $("bar").style.width = its.length ? `${(seen / its.length) * 100}%` : "0";
@@ -733,6 +779,14 @@ function renderList(id) {
     t.textContent = it.title;
     if (it.url) { t.href = it.url; t.target = "_blank"; t.rel = "noopener"; }
     title.append(t);
+    if (loaded && isNewRow(it, visitBase[id] || "")) {
+      const dot = document.createElement("span");
+      dot.className = "item-dot";
+      dot.title = "Neu";
+      dot.setAttribute("role", "img");
+      dot.setAttribute("aria-label", "neu");
+      title.prepend(dot); // Punkt vor dem Titel, wie „ungelesen“
+    }
     if (it.year) {
       const y = document.createElement("span");
       y.className = "year";
@@ -921,6 +975,7 @@ $("item-form").addEventListener("submit", e => {
     const its = listItems(r.id);
     const position = its.length ? its[its.length - 1].position + 1 : 1;
     const row = { id: crypto.randomUUID(), list_id: r.id, seen: false, position, ...fields };
+    ownIds.add(row.id);
     items.push(row);
     if ((filters[r.id] || "all") === "seen") filters[r.id] = "all"; // neuer Eintrag soll sichtbar sein
     write(() => db.from("items").insert(row));
@@ -1072,7 +1127,11 @@ const itemsImport = setupImport(document.querySelector("#import-dialog .import-b
 function buildRows(listId, parsed) {
   const its = listItems(listId);
   let pos = its.length ? its[its.length - 1].position : 0;
-  return parsed.map(r => ({ id: crypto.randomUUID(), list_id: listId, position: ++pos, ...r }));
+  return parsed.map(r => {
+    const row = { id: crypto.randomUUID(), list_id: listId, position: ++pos, ...r };
+    ownIds.add(row.id);
+    return row;
+  });
 }
 
 $("import-items").addEventListener("click", () => {
@@ -1132,6 +1191,7 @@ $("list-form").addEventListener("submit", e => {
   } else {
     const position = lists.length ? Math.max(...lists.map(l => l.position)) + 1 : 1;
     const row = { id: crypto.randomUUID(), name, emoji, position };
+    ownIds.add(row.id);
     lists.push(row);
     const rows = buildRows(row.id, listImport.rows());
     items.push(...rows);
